@@ -1,13 +1,13 @@
-push 7
-push 6
-push 5
-push 4
-push 3
-push 2
-push 1
+push 7 a
+push 6 b
+push 5 c
+push 4 d
+push 3 e
+push 2 f
+push 1 g
 
-push 3
-push 1
+push 3 h
+push 1 i
 
 roll
 
