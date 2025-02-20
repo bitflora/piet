@@ -250,15 +250,16 @@ fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, 
                 command_num = comm.value as usize;
             },
             CommandType::DebugStack => {
-                print!("Stack: ");
-                for x in labels.iter().rev() {
-                    print!("{} ", x);
+                println!("Stack: ");
+                
+                for i in (0..stack.len()).rev() {
+                    let num = stack[i].to_string();
+                    print!("{}", num);
+                    for _ in 0..(10 - num.len()) {
+                        print!(" ");
+                    }
+                    println!("{}", labels[i]);
                 }
-                println!();
-                for x in stack.iter().rev() {
-                    print!("{} ", x);
-                }
-                println!();
             },
             CommandType::NoOp => {
                 // Do nothing
