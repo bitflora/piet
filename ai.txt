@@ -6,8 +6,7 @@ roll       # Move it to position 101 on stack
 # Start of program - outer loop from y = 100 to -100 by step -5
 push 100   # Initial y value
 
-# Outer loop label
-# Line 5
+# Outer loop label (line 4)
 duplicate
 out_number # Debug: print current y value
 push 32    # ASCII space
@@ -16,8 +15,7 @@ out_char
 # Start inner loop from x = -200 to 50 by step 3
 push -200  # Initial x value
 
-# Inner loop label
-# Line 10
+# Inner loop label (line 9)
 duplicate
 duplicate  # Keep copy of current x for mandelbrot calc and for loop variable
 
@@ -38,8 +36,7 @@ push 1
 # 4 iterations loop
 push 4     # Counter
 
-# Iteration loop label 
-# Line 25
+# Iteration loop label (line 24)
 # Stack: [counter, b_acc, a_acc, y, x, ...]
 
 # First, compute new_a1 = a_acc * a_acc / FACTOR
@@ -108,8 +105,7 @@ subtract
 duplicate  # Copy counter for branch check
 push 0
 greater    # Counter > 0?
-push 25    # Line to jump back to (iteration loop label)
-branch     # Jump if counter > 0
+branch 24  # Jump to iteration loop if counter > 0
 
 # Clean up loop counter
 pop
@@ -148,19 +144,17 @@ push 0
 greater    # Compare with 0 (is it > 0?)
 push 1
 subtract   # Invert to get 1 if <= 0
-duplicate  # Copy for branch
-push 90    # Jump to line 90 (abs logic)
-branch
-pop        # Clean up if not taken
-push 94    # Jump to line 94 (end of abs logic)
-branch
+branch 89  # Jump to abs logic if value <= 0
 
-# Line 90 - abs logic for negative numbers
+push 93    # Skip to end of abs logic
+branch 93  # Always jump to end of abs logic
+
+# Line 89 - abs logic for negative numbers
 pop        # Clear branch flag
 push -1
 multiply   # Multiply by -1 to get absolute value
 
-# Line 94 - end of abs logic
+# Line 93 - end of abs logic
 # Compare with threshold (4*FACTOR)
 push 101   # Retrieve FACTOR position
 roll       # Get FACTOR
@@ -172,18 +166,16 @@ roll       # Put FACTOR back
 greater    # Is abs value > 4*FACTOR?
 push 1
 subtract   # Invert to get 1 if value <= 4*FACTOR
-push 106   # Jump to print '*' logic
-branch
+branch 105 # Jump to print '*' logic if value <= 4*FACTOR
 
-# Line 106 - Print '*' or '-'
-push 42    # ASCII '*'
-push 115   # Jump to print character
-branch
-
-# Line 109 - Print '-'
+# Otherwise print '-'
 push 45    # ASCII '-'
+branch 108 # Jump to print character
 
-# Line 115 - Print character
+# Line 105 - Print '*'
+push 42    # ASCII '*'
+
+# Line 108 - Print character
 out_char
 
 # Increment x by 3 for inner loop
@@ -198,8 +190,7 @@ push 50
 greater    # x > 50?
 push 1
 subtract   # Invert to get 1 if x <= 50
-push 10    # Line to jump back to (inner loop)
-branch     # Jump back if x <= 50
+branch 9   # Jump back to inner loop if x <= 50
 
 # Clean up x if loop is done
 pop
@@ -218,7 +209,6 @@ subtract   # y -= 5
 duplicate  # Copy y for comparison
 push -101
 greater    # y > -101?
-push 5     # Line to jump back to (outer loop)
-branch     # Jump back if y > -101
+branch 4   # Jump back to outer loop if y > -101
 
 pop        # Clean up y when done
