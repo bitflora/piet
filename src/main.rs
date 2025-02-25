@@ -246,8 +246,12 @@ fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, 
                 labels.pop();
             },
             CommandType::Branch => {
-                // TODO: make this conditional
-                command_num = comm.value as usize;
+                let x = stack.pop().unwrap();
+                labels.pop();
+
+                if x != 0 {
+                    command_num = comm.value as usize;
+                }
             },
             CommandType::DebugStack => {
                 println!("Stack: ");
@@ -378,5 +382,20 @@ mod tests {
         let (stack, labels, _, _) = run_code(cmds);
         assert_eq!(stack, vec![0]);
         assert_eq!(labels, vec!["answer"]);
+    }
+
+    #[test]
+    fn test_branch() {
+        let cmds = vec![
+            Command::parse("push -3"),
+            Command::parse("push 1"),
+            Command::parse("add"),
+            Command::parse("duplicate"),
+            Command::parse("debug_stack"),
+            Command::parse("branch 1"),
+        ];
+        let (stack, _, _, _) = run_code(cmds);
+        assert_eq!(stack, vec![0]);
+
     }
 }
