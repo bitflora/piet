@@ -1,0 +1,224 @@
+# Define FACTOR constant (100)
+push 100
+push 101   # Line position to store FACTOR
+roll       # Move it to position 101 on stack
+
+# Start of program - outer loop from y = 100 to -100 by step -5
+push 100   # Initial y value
+
+# Outer loop label
+# Line 5
+duplicate
+out_number # Debug: print current y value
+push 32    # ASCII space
+out_char
+
+# Start inner loop from x = -200 to 50 by step 3
+push -200  # Initial x value
+
+# Inner loop label
+# Line 10
+duplicate
+duplicate  # Keep copy of current x for mandelbrot calc and for loop variable
+
+# Call mandelbrot_complex(x, y)
+push 101   # Retrieve FACTOR position
+roll       # Get FACTOR
+push 1
+roll       # Put FACTOR back
+
+# mandelbrot_complex function begins
+# At this point, stack has [x, y, ...], with x at top
+
+# Init a_acc (should be 0, but using 2 for testing)
+push 2
+# Init b_acc (should be 0, but using 1 for testing)
+push 1
+
+# 4 iterations loop
+push 4     # Counter
+
+# Iteration loop label 
+# Line 25
+# Stack: [counter, b_acc, a_acc, y, x, ...]
+
+# First, compute new_a1 = a_acc * a_acc / FACTOR
+duplicate  # Get a_acc
+push 2
+roll
+duplicate  # Copy a_acc again
+multiply   # a_acc * a_acc
+push 101   # Retrieve FACTOR position
+roll       # Get FACTOR
+divide     # (a_acc * a_acc) / FACTOR
+push 1
+roll       # Put FACTOR back
+# new_a1 is on top of stack
+
+# Compute new_a2 = b_acc * b_acc / FACTOR
+push 3
+roll       # Get b_acc to top
+duplicate  # Copy b_acc
+multiply   # b_acc * b_acc
+push 101   # Retrieve FACTOR position
+roll       # Get FACTOR
+divide     # (b_acc * b_acc) / FACTOR
+push 1
+roll       # Put FACTOR back
+# new_a2 is on top of stack
+
+# Compute new_a = new_a1 - new_a2
+subtract   # new_a1 - new_a2 (new_a is now on top)
+
+# Calculate 2*a_acc*b_acc/FACTOR for new_b
+push 3
+roll       # Get a_acc
+push 3
+roll       # Get b_acc
+multiply   # a_acc * b_acc
+push 101   # Retrieve FACTOR position
+roll       # Get FACTOR
+divide     # (a_acc * b_acc) / FACTOR
+push 1
+roll       # Put FACTOR back
+
+duplicate  # Duplicate to get 2* effect
+add        # (a_acc * b_acc / FACTOR) * 2
+
+# Stack: [new_b, new_a, counter, y, x, ...]
+
+# Add coordinates (x,y) to get a_acc and b_acc
+# First, get new_a + x
+push 4
+roll       # Get x to top
+add        # new_a + x = a_acc
+
+# Now, get new_b + y  
+push 2
+roll       # Get y to top
+add        # new_b + y = b_acc
+push 2
+roll       # Put y back in original spot
+
+# Decrement counter
+push 1
+subtract
+
+# Branch to iteration loop if counter > 0
+duplicate  # Copy counter for branch check
+push 0
+greater    # Counter > 0?
+push 25    # Line to jump back to (iteration loop label)
+branch     # Jump if counter > 0
+
+# Clean up loop counter
+pop
+
+# Stack: [b_acc, a_acc, y, x, ...]
+
+# Calculate final value: (a_acc*a_acc/FACTOR + b_acc*b_acc/FACTOR)
+# First a_acc*a_acc/FACTOR
+push 1
+roll       # Get a_acc
+duplicate  # Copy a_acc
+multiply   # a_acc * a_acc
+push 101   # Retrieve FACTOR position
+roll       # Get FACTOR
+divide     # (a_acc * a_acc) / FACTOR
+push 1
+roll       # Put FACTOR back
+
+# Then b_acc*b_acc/FACTOR
+push 3
+roll       # Get b_acc
+duplicate  # Copy b_acc
+multiply   # b_acc * b_acc
+push 101   # Retrieve FACTOR position
+roll       # Get FACTOR
+divide     # (b_acc * b_acc) / FACTOR
+push 1
+roll       # Put FACTOR back
+
+# Add them together
+add        # Final value on top
+
+# Calculate absolute value (simple way: if < 0, multiply by -1)
+duplicate  # Copy for comparison
+push 0
+greater    # Compare with 0 (is it > 0?)
+push 1
+subtract   # Invert to get 1 if <= 0
+duplicate  # Copy for branch
+push 90    # Jump to line 90 (abs logic)
+branch
+pop        # Clean up if not taken
+push 94    # Jump to line 94 (end of abs logic)
+branch
+
+# Line 90 - abs logic for negative numbers
+pop        # Clear branch flag
+push -1
+multiply   # Multiply by -1 to get absolute value
+
+# Line 94 - end of abs logic
+# Compare with threshold (4*FACTOR)
+push 101   # Retrieve FACTOR position
+roll       # Get FACTOR
+push 4
+multiply   # 4 * FACTOR
+push 1
+roll       # Put FACTOR back
+
+greater    # Is abs value > 4*FACTOR?
+push 1
+subtract   # Invert to get 1 if value <= 4*FACTOR
+push 106   # Jump to print '*' logic
+branch
+
+# Line 106 - Print '*' or '-'
+push 42    # ASCII '*'
+push 115   # Jump to print character
+branch
+
+# Line 109 - Print '-'
+push 45    # ASCII '-'
+
+# Line 115 - Print character
+out_char
+
+# Increment x by 3 for inner loop
+push 4
+roll       # Get original x to top
+push 3
+add        # x += 3
+
+# Check if inner loop should continue (x <= 50)
+duplicate  # Copy x for comparison
+push 50
+greater    # x > 50?
+push 1
+subtract   # Invert to get 1 if x <= 50
+push 10    # Line to jump back to (inner loop)
+branch     # Jump back if x <= 50
+
+# Clean up x if loop is done
+pop
+
+# Print newline at end of row
+push 10    # ASCII newline
+out_char
+
+# Decrement y by 5 for outer loop
+push 2
+roll       # Get y to top
+push 5
+subtract   # y -= 5
+
+# Check if outer loop should continue (y >= -100)
+duplicate  # Copy y for comparison
+push -101
+greater    # y > -101?
+push 5     # Line to jump back to (outer loop)
+branch     # Jump back if y > -101
+
+pop        # Clean up y when done

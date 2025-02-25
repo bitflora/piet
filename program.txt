@@ -1,0 +1,45 @@
+# 100.step(to: -100, by: -5) do |y|
+push 10
+push 10
+* loop_100
+
+# -200.step(to: 50, by: 3) do |x|
+push 0
+push 10
+push 20
+*
+- loop_-200
+
+# def mandelbrot_complex(a, b)
+push 1 a_acc
+push 2 b_acc
+# 4.time do
+    dup
+    dup
+    *
+    push 100 FACTOR
+    / new_a1 # = a_acc * a_acc / FACTOR
+
+    push 2
+    push 1
+    roll
+
+    dup
+    dup
+    *
+    push 100 FACTOR
+    / new_a2 # = b_acc * b_acc / FACTOR
+
+    
+    push 2
+    push 1
+    roll
+
+    push 3
+    push 1
+    roll
+
+    - new_a
+    
+    debug_stack
+
