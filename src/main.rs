@@ -1,15 +1,16 @@
-use std::fs::{read, File};
+use std::fs::File;
 use std::io::{self, BufRead};
-use std::num;
-use std::path::Component;
+use std::env;
 
 // https://www.dangermouse.net/esoteric/piet.html
 
+#[derive(PartialEq, Debug)]
 enum CodelChooser {
     Left,
     Right,
 }
 
+#[derive(PartialEq, Debug)]
 enum DirectionPointer {
     Right,
     Down,
@@ -45,6 +46,7 @@ struct Command {
     action: CommandType,
     value: i32,
     label: String,
+    source: String,
 }
 
 impl Command {
@@ -58,13 +60,15 @@ impl Command {
         }
     }
     pub fn parse(line: &str) -> Command {
+        let source = line.to_string();
         let line = Command::clean_line(line);
         if line == "" {
             // blank line is also a noop, for easy goto
             return Command {
                 action: CommandType::NoOp,
                 value: -1,
-                label: "".to_string()
+                label: "".to_string(),
+                source
             };
         }
         let split: Vec<&str> = line.split(' ').collect();
@@ -114,17 +118,21 @@ impl Command {
                 "in_number" |
                 "in_char"  => split.get(1).unwrap_or(&"").to_string(),
                 _ => "".to_string()
-            }
+            },
+            source
 
         }
     }
 }
 
 fn main() {
-    let commands = read_file("program.txt");
+    let args: Vec<String> = env::args().collect();
+    let commands = read_file(args.get(1).unwrap_or(&"program.txt".to_string()));
 
     run_code(commands);
 }
+
+const DEBUG: bool = true;
 
 fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, CodelChooser) {
     let mut stack: Vec<i32> = Vec::new();
@@ -136,6 +144,9 @@ fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, 
 
     while command_num < commands.len() {
         let comm = &commands[command_num];
+        if DEBUG {
+            println!("{}: {}", command_num, comm.source);
+        }
         command_num += 1;
 
         match comm.action {
@@ -209,8 +220,40 @@ fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, 
                 });
                 labels.push(&comm.label);
             },
-            CommandType::Pointer => todo!(),
-            CommandType::Switch => todo!(),
+            CommandType::Pointer => {
+                let times = stack.pop().unwrap();
+                labels.pop();
+                if times > 0 {
+                    for _ in 0..times {
+                        dp = match dp {
+                            DirectionPointer::Right => DirectionPointer::Down,
+                            DirectionPointer::Down => DirectionPointer::Left,
+                            DirectionPointer::Left => DirectionPointer::Up,
+                            DirectionPointer::Up => DirectionPointer::Right,
+                        }
+                    }
+                } else if times < 0 {
+                    
+                    for _ in 0..times.abs() {
+                        dp = match dp {
+                            DirectionPointer::Right => DirectionPointer::Up,
+                            DirectionPointer::Down => DirectionPointer::Right,
+                            DirectionPointer::Left => DirectionPointer::Down,
+                            DirectionPointer::Up => DirectionPointer::Left,
+                        }
+                    }
+                }
+            },
+            CommandType::Switch => {
+                let times = stack.pop().unwrap();
+                labels.pop();
+                if times.abs() % 2 == 1 {
+                    cc = match cc {
+                        CodelChooser::Left => CodelChooser::Right,
+                        CodelChooser::Right => CodelChooser::Left,
+                    }
+                }
+            },
             CommandType::Duplicate => {
                 let x = stack.pop().unwrap();
                 // Don't pop the label, because we put this right back
@@ -277,6 +320,7 @@ fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, 
 }
 
 fn read_file(file_path: &str) -> Vec<Command> {
+    println!("Openning {}", file_path);
     let file = File::open(file_path).unwrap();
     let reader = io::BufReader::new(file);
 
@@ -396,6 +440,58 @@ mod tests {
         ];
         let (stack, _, _, _) = run_code(cmds);
         assert_eq!(stack, vec![0]);
+    }
 
+    #[test]
+    fn test_pointer() {
+        let cmds = vec![
+            Command::parse("push 3"),
+            Command::parse("pointer"),
+        ];
+        let (stack, labels, dp, _) = run_code(cmds);
+        assert!(stack.is_empty());
+        assert!(labels.is_empty());
+        assert_eq!(dp, DirectionPointer::Up);
+
+        
+        let cmds = vec![
+            Command::parse("push -3"),
+            Command::parse("pointer"),
+        ];
+        let (stack, labels, dp, _) = run_code(cmds);
+        assert!(stack.is_empty());
+        assert!(labels.is_empty());
+        assert_eq!(dp, DirectionPointer::Down);
+    }
+
+    #[test]
+    fn test_switch() {
+        let cmds = vec![
+            Command::parse("push 1"),
+            Command::parse("switch"),
+        ];
+        let (stack, labels, _, cc) = run_code(cmds);
+        assert!(stack.is_empty());
+        assert!(labels.is_empty());
+        assert_eq!(cc, CodelChooser::Right);
+
+        
+        let cmds = vec![
+            Command::parse("push 2"),
+            Command::parse("switch"),
+        ];
+        let (stack, labels, _, cc) = run_code(cmds);
+        assert!(stack.is_empty());
+        assert!(labels.is_empty());
+        assert_eq!(cc, CodelChooser::Left);
+        
+        let cmds = vec![
+            Command::parse("push -1"),
+            Command::parse("switch"),
+        ];
+        let (stack, labels, _, cc) = run_code(cmds);
+        assert!(stack.is_empty());
+        assert!(labels.is_empty());
+        assert_eq!(cc, CodelChooser::Right);
     }
 }
