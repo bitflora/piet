@@ -40,6 +40,8 @@ push 2 b_acc
     roll
 
     - new_a
+
+
     
     debug_stack
 

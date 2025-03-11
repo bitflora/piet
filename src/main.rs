@@ -18,6 +18,7 @@ enum DirectionPointer {
     Up,
 }
 
+#[derive(Clone)]
 enum CommandType {
     Push,
     Pop,
@@ -42,6 +43,7 @@ enum CommandType {
     NoOp,
 }
 
+#[derive(Clone)]
 struct Command {
     action: CommandType,
     value: i32,
@@ -345,6 +347,35 @@ mod tests {
         let (stack, labels, _, _) = run_code(cmds);
         assert_eq!(stack, vec![7, 6, 5, 4, 1, 3, 2]);
         assert_eq!(labels, vec!["a", "b", "c", "d", "g", "e", "f"]);
+
+        let cmds: Vec<Command> = vec![
+            "push 1",
+            "push 2",
+            "push 3",
+            "push 4",
+            "push 5",
+            "push 2",
+            "push 3",
+            "roll",
+        ].iter().map(|x| Command::parse(x)).collect();
+
+        let (stack, _, _, _) = run_code(cmds);
+        assert_eq!(stack, vec![1, 2, 3, 5, 4]);
+
+
+        let cmds: Vec<Command> = vec![
+            "push 1",
+            "push 2",
+            "push 3",
+            "push 4",
+            "push 5",
+            "push 3",
+            "push 1",
+            "roll",
+        ].iter().map(|x| Command::parse(x)).collect();
+
+        let (stack, _, _, _) = run_code(cmds);
+        assert_eq!(stack, vec![1, 2, 5, 3, 4]);
     }
 
     #[test]
@@ -493,5 +524,43 @@ mod tests {
         assert!(stack.is_empty());
         assert!(labels.is_empty());
         assert_eq!(cc, CodelChooser::Right);
+    }
+
+    #[test]
+    fn test_mandelbrot_complex() {
+        let program = read_file("tests/fixtures/mandelbot_complex.txt");
+
+        
+        let mut test_1_1 =  vec![
+            Command::parse("push 1"),
+            Command::parse("push 1"),
+        ];
+        test_1_1.extend(program.clone());
+        let (stack, _, _, _) = run_code(test_1_1);
+        assert_eq!(stack, vec![0]);
+
+        let mut test_5_5 =  vec![
+            Command::parse("push 5"),
+            Command::parse("push 5"),
+        ];
+        test_5_5.extend(program.clone());
+        let (stack, _, _, _) = run_code(test_5_5);
+        assert_eq!(stack, vec![0]);
+
+        let mut test_20_30 =  vec![
+            Command::parse("push 20"),
+            Command::parse("push 30"),
+        ];
+        test_20_30.extend(program.clone());
+        let (stack, _, _, _) = run_code(test_20_30);
+        assert_eq!(stack, vec![11]);
+
+        let mut test_50_70 =  vec![
+            Command::parse("push -50"),
+            Command::parse("push -70"),
+        ];
+        test_50_70.extend(program.clone());
+        let (stack, _, _, _) = run_code(test_50_70);
+        assert_eq!(stack, vec![155]);
     }
 }
