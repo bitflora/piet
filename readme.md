@@ -11,10 +11,10 @@ These are the valid commands:
 - not: Replaces the top value of the stack with 0 if it is non-zero, and 1 if it is zero.
 - greater: Pops the top two values off the stack, and pushes 1 on to the stack if the second top value is greater than the top value, and pushes 0 if it is not greater.
 - duplicate: Pushes a copy of the top value on the stack on to the stack.
-- roll: Pops the top two values off the stack and "rolls" the remaining stack entries to a depth equal to the second value popped, by a number of rolls equal to the first value popped. A single roll to depth n is defined as burying the top value on the stack n deep and bringing all values above it up by 1 place. A negative number of rolls rolls in the opposite direction. A negative depth is an error and the command is ignored. If a roll is greater than an implementation-dependent maximum stack depth, it is handled as an implementation-dependent error, though simply ignoring the command is recommended.
-out_number: Pops the top value off the stack and prints it to STDOUT as a number.
+- roll: Pops the top two values off the stack and "rolls" the remaining stack entries to a depth equal to the second value popped, by a number of rolls equal to the first value popped. A single roll to depth n is defined as burying the top value on the stack n deep and bringing all values above it up by 1 place. A negative number of rolls rolls in the opposite direction. A negative depth is an error and the command is ignored. If a roll is greater than an implementation-dependent maximum stack depth, it is handled as an implementation-dependent error, though simply ignoring the command is recommended. To get an entry `X` deep in the stack (ignoring the parameters to `roll` itself), push `X` and then push `X-1`, then roll.
+- out_number: Pops the top value off the stack and prints it to STDOUT as a number.
 - out_char: Pops the top value off the stack and prints it to STDOUT as the equivalent ascii character.
-- branch x: pops the top value off the stack and jumps to the line number indicated by x if the value was non-zero. Line numbers are zero-indexed.
+- branch x: Pops the top value off the stack. If that value is non-zero, it jumps to the line number indicated by x. Line numbers are zero-indexed.
 
 Examples
 
@@ -24,6 +24,7 @@ push 1
 push 2
 add
 ```
+
 This ends with the value `3` on the stack.
 
 Here is an example of the `roll` command:
@@ -41,4 +42,5 @@ push 1
 
 roll
 ```
+
 This yields a stack that, from top to bottom looks like: `7, 6, 5, 4, 1, 3, 2`

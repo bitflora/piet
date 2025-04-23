@@ -1,0 +1,154 @@
+# assumes you have already pushed a then b
+
+push 4 loop_counter    # loop counter
+
+# Initial accumulator values
+push 1 b_acc
+push 2 a_acc
+
+# Repeat 4 times (Ruby's 4.times)
+debug_stack
+
+# new_a1 = a_acc * a_acc / FACTOR
+dup
+dup
+*
+push 100 FACTOR
+/ new_a1
+
+# stack: new_a1, a_acc, b_acc, loop_counter, b, a
+
+# new_a2 = b_acc * b_acc / FACTOR
+push 3
+push 2
+roll
+# stack: b_acc, new_a1, a_acc, loop_counter, b, a
+dup
+dup
+*
+push 100 FACTOR
+/ new_a2
+
+# stack: new_a2, b_acc, new_a1, a_acc, loop_counter, b, a
+
+# new_a = new_a1 - new_a2
+push 3
+push 2
+roll
+
+push 2
+push 1
+roll
+
+- new_a
+# stack: new_a, b_acc, a_acc, loop_counter, b, a
+
+# ((((a_acc b_acc *) FACTOR /) dup) +)
+# new_b = a_acc * b_acc / FACTOR + a_acc * b_acc / FACTOR
+push 2
+push 1
+roll
+
+push 3
+push 2
+roll
+* a_acc_times_b_acc # a_acc * b_acc
+push 100 FACTOR
+divide
+dup
++ new_b
+
+debug_stack
+# stack: new_b, new_a, loop_counter, b, a
+
+# b_acc = new_b + b
+# pull b
+push 4
+push 3
+roll
+dup b_copy
+
+# pull new_b
+push 3
+push 2
+roll
+
+* b_acc
+# stack b_acc, b, new_a, loop_counter, a
+
+# a_acc = new_a + a
+push 5
+push 4
+roll # pull a
+dup a_copy
+
+push 5
+push 4
+roll # pull new_a
+* a_acc
+
+# stack: a_acc, a, b_acc, b, loop_counter 
+debug_stack
+
+# TODO:  tidy stack into THIS order: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
+
+# pull loop_counter, decrement, dup
+push 5
+push 4
+roll # pull loop_counter
+
+push 1
+- loop_counter
+dup loop_counter_copy
+
+# stack: loop_counter_copy, loop_counter, a_acc, a, b_acc, b
+
+push 4
+push 3
+roll # pull a
+
+push 6
+push 5
+roll # pull b
+push 4
+push 3
+roll # pull loop_counter
+push 6
+push 5
+roll # pull b_acc
+# stack: b_acc, loop_counter, b, a, loop_counter_copy, a_acc
+push 6
+push 5
+roll # pull a_acc
+push 6
+push 5
+roll # pull loop_counter_copy
+
+debug_stack
+# stack: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
+
+branch 10 # loop 4 times
+
+debug_stack
+
+# stack: a_acc, b_acc, loop_counter, b, a
+# TODO: is it a problem that a,b aren't there anymore? Yes it was
+
+push 5
+push 4
+roll # pull a_acc
+dup
+* a_acc2
+push 100 FACTOR
+divide a_final
+
+push 5
+push 4
+roll # pull b_acc
+dup
+* b_acc2
+push 100 FACTOR
+divide b_final
+- return
+
+debug_stack
