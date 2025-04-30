@@ -73,7 +73,9 @@ push 3
 push 2
 roll
 
-* b_acc
+debug_stack
+
++ b_acc
 # stack b_acc, b, new_a, loop_counter, a
 
 # a_acc = new_a + a
@@ -85,12 +87,12 @@ dup a_copy
 push 5
 push 4
 roll # pull new_a
-* a_acc
++ a_acc
 
 # stack: a_acc, a, b_acc, b, loop_counter 
 debug_stack
 
-# TODO:  tidy stack into THIS order: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
+# tidy stack into this order: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
 
 # pull loop_counter, decrement, dup
 push 5
@@ -129,26 +131,27 @@ debug_stack
 
 branch 10 # loop 4 times
 
-debug_stack
-
 # stack: a_acc, b_acc, loop_counter, b, a
-# TODO: is it a problem that a,b aren't there anymore? Yes it was
 
-push 5
-push 4
-roll # pull a_acc
+# (a_acc*a_acc/FACTOR + b_acc*b_acc/FACTOR)
+# push 5
+# push 4
+# roll # pull a_acc
 dup
 * a_acc2
 push 100 FACTOR
 divide a_final
+debug_stack
 
-push 5
-push 4
+push 2
+push 1
 roll # pull b_acc
+debug_stack
 dup
 * b_acc2
 push 100 FACTOR
 divide b_final
-- return
+debug_stack
++ return
 
 debug_stack
