@@ -45,6 +45,7 @@ roll
 
 # ((((a_acc b_acc *) FACTOR /) dup) +)
 # new_b = a_acc * b_acc / FACTOR + a_acc * b_acc / FACTOR
+debug_stack
 push 2
 push 1
 roll

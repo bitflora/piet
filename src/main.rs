@@ -594,6 +594,6 @@ mod tests {
         ];
         test_50_70.extend(program.clone());
         let (stack, _, _, _) = run_code(test_50_70);
-        assert_eq!(*stack.iter().last().unwrap(), 155);
+        assert_eq!(*stack.iter().last().unwrap(), 152); //Ruby will give 155, due to stupid integer division rules
     }
 }
