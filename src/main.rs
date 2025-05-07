@@ -112,7 +112,7 @@ impl Command {
                 "add" | "+" |
                 "subtract" | "-" |
                 "multiply" | "*" |
-                "divide" | "/" | 
+                "divide" | "/" |
                 "mod" | "%" |
                 "not" |
                 "greater" | ">" |
@@ -131,12 +131,11 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let commands = read_file(args.get(1).unwrap_or(&"program.txt".to_string()));
 
-    run_code(commands);
+    run_code(commands, false);
 }
 
-const DEBUG: bool = true;
 
-fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, CodelChooser) {
+fn run_code(commands:Vec<Command>, debug: bool) -> (Vec<i32>, Vec<String>, DirectionPointer, CodelChooser) {
     let mut stack: Vec<i32> = Vec::new();
     let mut labels: Vec<&str> = Vec::new();
     let mut dp: DirectionPointer = DirectionPointer::Right;
@@ -146,7 +145,7 @@ fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, 
 
     while command_num < commands.len() {
         let comm = &commands[command_num];
-        if DEBUG {
+        if debug {
             println!("{}: {}", command_num, comm.source);
         }
         command_num += 1;
@@ -236,7 +235,7 @@ fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, 
                         }
                     }
                 } else if times < 0 {
-                    
+
                     for _ in 0..times.abs() {
                         dp = match dp {
                             DirectionPointer::Right => DirectionPointer::Up,
@@ -301,7 +300,7 @@ fn run_code(commands:Vec<Command>) -> (Vec<i32>, Vec<String>, DirectionPointer, 
             },
             CommandType::DebugStack => {
                 println!("Stack: ");
-                
+
                 for i in (0..stack.len()).rev() {
                     let num = stack[i].to_string();
                     print!("{}", num);
@@ -345,7 +344,7 @@ mod tests {
     #[test]
     fn test_roll() {
         let cmds = read_file("tests/fixtures/roll.txt");
-        let (stack, labels, _, _) = run_code(cmds);
+        let (stack, labels, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![7, 6, 5, 4, 1, 3, 2]);
         assert_eq!(labels, vec!["a", "b", "c", "d", "g", "e", "f"]);
 
@@ -360,7 +359,7 @@ mod tests {
             "roll",
         ].iter().map(|x| Command::parse(x)).collect();
 
-        let (stack, _, _, _) = run_code(cmds);
+        let (stack, _, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![1, 2, 3, 5, 4]); // Rightmost is the top of the stack
 
 
@@ -375,7 +374,7 @@ mod tests {
             "roll",
         ].iter().map(|x| Command::parse(x)).collect();
 
-        let (stack, _, _, _) = run_code(cmds);
+        let (stack, _, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![1, 2, 5, 3, 4]);
 
         let cmds: Vec<Command> = vec![
@@ -392,7 +391,7 @@ mod tests {
             "roll",
         ].iter().map(|x| Command::parse(x)).collect();
 
-        let (stack, _, _, _) = run_code(cmds);
+        let (stack, _, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![7,6,5,4,1,3,2]);
 
         // example of getting the third entry to the top
@@ -408,14 +407,14 @@ mod tests {
             "roll",
         ].iter().map(|x| Command::parse(x)).collect();
 
-        let (stack, _, _, _) = run_code(cmds);
+        let (stack, _, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![5,4,2,1,3]);
     }
 
     #[test]
     fn test_add() {
         let cmds = read_file("tests/fixtures/add.txt");
-        let (stack, labels, _, _) = run_code(cmds);
+        let (stack, labels, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![3]);
         assert_eq!(labels, vec![""]);
     }
@@ -427,7 +426,7 @@ mod tests {
             Command::parse("push 4"),
             Command::parse("- answer")
         ];
-        let (stack, labels, _, _) = run_code(cmds);
+        let (stack, labels, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![-1]);
         assert_eq!(labels, vec!["answer"]);
     }
@@ -440,7 +439,7 @@ mod tests {
             Command::parse("push 5"),
             Command::parse("* answer")
         ];
-        let (stack, labels, _, _) = run_code(cmds);
+        let (stack, labels, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![3, 20]);
         assert_eq!(labels, vec!["", "answer"]);
     }
@@ -452,7 +451,7 @@ mod tests {
             Command::parse("push 2"),
             Command::parse("/")
         ];
-        let (stack, labels, _, _) = run_code(cmds);
+        let (stack, labels, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![5]);
         assert_eq!(labels, vec![""]);
     }
@@ -467,7 +466,7 @@ mod tests {
             Command::parse("push 1 b1"),
             Command::parse("not c2")
         ];
-        let (stack, labels, _, _) = run_code(cmds);
+        let (stack, labels, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![0, 1, 0]);
         assert_eq!(labels, vec!["a2", "b2", "c2"]);
     }
@@ -479,7 +478,7 @@ mod tests {
             Command::parse("push 0"),
             Command::parse("> answer"),
         ];
-        let (stack, labels, _, _) = run_code(cmds);
+        let (stack, labels, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![1]);
         assert_eq!(labels, vec!["answer"]);
 
@@ -488,7 +487,7 @@ mod tests {
             Command::parse("push 6 b"),
             Command::parse("> answer")
         ];
-        let (stack, labels, _, _) = run_code(cmds);
+        let (stack, labels, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![0]);
         assert_eq!(labels, vec!["answer"]);
     }
@@ -503,7 +502,7 @@ mod tests {
             Command::parse("debug_stack"),
             Command::parse("branch 1"),
         ];
-        let (stack, _, _, _) = run_code(cmds);
+        let (stack, _, _, _) = run_code(cmds, true);
         assert_eq!(stack, vec![0]);
     }
 
@@ -513,17 +512,17 @@ mod tests {
             Command::parse("push 3"),
             Command::parse("pointer"),
         ];
-        let (stack, labels, dp, _) = run_code(cmds);
+        let (stack, labels, dp, _) = run_code(cmds, true);
         assert!(stack.is_empty());
         assert!(labels.is_empty());
         assert_eq!(dp, DirectionPointer::Up);
 
-        
+
         let cmds = vec![
             Command::parse("push -3"),
             Command::parse("pointer"),
         ];
-        let (stack, labels, dp, _) = run_code(cmds);
+        let (stack, labels, dp, _) = run_code(cmds, true);
         assert!(stack.is_empty());
         assert!(labels.is_empty());
         assert_eq!(dp, DirectionPointer::Down);
@@ -535,26 +534,26 @@ mod tests {
             Command::parse("push 1"),
             Command::parse("switch"),
         ];
-        let (stack, labels, _, cc) = run_code(cmds);
+        let (stack, labels, _, cc) = run_code(cmds, true);
         assert!(stack.is_empty());
         assert!(labels.is_empty());
         assert_eq!(cc, CodelChooser::Right);
 
-        
+
         let cmds = vec![
             Command::parse("push 2"),
             Command::parse("switch"),
         ];
-        let (stack, labels, _, cc) = run_code(cmds);
+        let (stack, labels, _, cc) = run_code(cmds, true);
         assert!(stack.is_empty());
         assert!(labels.is_empty());
         assert_eq!(cc, CodelChooser::Left);
-        
+
         let cmds = vec![
             Command::parse("push -1"),
             Command::parse("switch"),
         ];
-        let (stack, labels, _, cc) = run_code(cmds);
+        let (stack, labels, _, cc) = run_code(cmds, true);
         assert!(stack.is_empty());
         assert!(labels.is_empty());
         assert_eq!(cc, CodelChooser::Right);
@@ -569,31 +568,31 @@ mod tests {
             Command::parse("push 1 b"),
         ];
         test_1_1.extend(program.clone());
-        let (stack, _, _, _) = run_code(test_1_1);
-        assert_eq!(*stack.iter().last().unwrap(), 0);
+        let (stack, _, _, _) = run_code(test_1_1, true);
+        assert_eq!(stack, vec![0]);
 
         let mut test_5_5 =  vec![
             Command::parse("push 5 a"),
             Command::parse("push 5 b"),
         ];
         test_5_5.extend(program.clone());
-        let (stack, _, _, _) = run_code(test_5_5);
-        assert_eq!(*stack.iter().last().unwrap(), 0);
+        let (stack, _, _, _) = run_code(test_5_5, true);
+        assert_eq!(stack, vec![0]);
 
         let mut test_20_30 =  vec![
             Command::parse("push 20 a"),
             Command::parse("push 30 b"),
         ];
         test_20_30.extend(program.clone());
-        let (stack, _, _, _) = run_code(test_20_30);
-        assert_eq!(*stack.iter().last().unwrap(), 11);
+        let (stack, _, _, _) = run_code(test_20_30, true);
+        assert_eq!(stack, vec![11]);
 
         let mut test_50_70 =  vec![
             Command::parse("push -50 a"),
             Command::parse("push -70 b"),
         ];
         test_50_70.extend(program.clone());
-        let (stack, _, _, _) = run_code(test_50_70);
-        assert_eq!(*stack.iter().last().unwrap(), 152); //Ruby will give 155, due to stupid integer division rules
+        let (stack, _, _, _) = run_code(test_50_70, true);
+        assert_eq!(stack, vec![325]); //Ruby will give very different answers, due to stupid integer division rules
     }
 }

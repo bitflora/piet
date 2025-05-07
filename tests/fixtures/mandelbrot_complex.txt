@@ -1,6 +1,6 @@
 # assumes you have already pushed a then b
 
-push 4 loop_counter    # loop counter
+push 10 loop_counter    # loop counter
 
 # Initial accumulator values
 push 1 b_acc
@@ -90,7 +90,7 @@ push 4
 roll # pull new_a
 + a_acc
 
-# stack: a_acc, a, b_acc, b, loop_counter 
+# stack: a_acc, a, b_acc, b, loop_counter
 debug_stack
 
 # tidy stack into this order: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
@@ -156,3 +156,12 @@ debug_stack
 + return
 
 debug_stack
+# Clear out everything but the return value
+# Move return to the bottom
+push 4
+push 1
+roll
+# pop the rest
+pop
+pop
+pop
