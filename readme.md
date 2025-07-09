@@ -1,3 +1,5 @@
+This is a text-based version of the Piet language (see https://www.dangermouse.net/esoteric/piet.html). Its purpose is to more easily prototype your Piet program before converting it to a beautiful image.
+
 The following describes a stack-based language. Each line of the program contains a single instruction, optionally followed by a space then a number, which would the value passed to the command. '#' begins a comment; everything from there to the end of the line is ignored.
 
 These are the valid commands:
