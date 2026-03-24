@@ -1,0 +1,11 @@
+push 100 counter     # line 0: initialize counter
+duplicate            # line 1: loop start — copy for printing
+out_number           # line 2: print value
+push 10              # line 3: newline ASCII
+out_char             # line 4: print newline
+push 5               # line 5: step
+subtract counter     # line 6: counter = counter - 5
+duplicate            # line 7: copy for comparison
+push -101            # line 8: threshold (counter > -101 means counter >= -100)
+greater              # line 9: 1 if still in range
+branch 1             # line 10: loop back if true
