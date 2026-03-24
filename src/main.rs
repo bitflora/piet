@@ -575,6 +575,30 @@ mod tests {
     }
 
     #[test]
+    fn test_count_down_nested() {
+        let cmds = read_file("tests/fixtures/count_down_nested.txt");
+        let mut output: Vec<u8> = Vec::new();
+        let (stack, _, _, _) = run_code(cmds, true, &mut output);
+
+        assert_eq!(stack, vec![-105]);
+
+        let mut expected = String::new();
+        let mut i = 100i64;
+        loop {
+            expected.push_str(&format!("{}\n", i));
+            let mut j = -200i64;
+            loop {
+                expected.push_str(&format!("{}\n", j));
+                j += 3;
+                if j > 50 { break; }
+            }
+            i -= 5;
+            if !(i > -101) { break; }
+        }
+        assert_eq!(String::from_utf8(output).unwrap(), expected);
+    }
+
+    #[test]
     fn test_mandelbrot_complex() {
         let program = read_file("tests/fixtures/mandelbrot_complex.txt");
 
