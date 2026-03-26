@@ -7,13 +7,13 @@ FACTOR = 100
 #   y: 1.0..−1.0 step −0.05  →  100..−100 step −5
 #   x: −2.0..0.5 step ~0.032 → −200..50   step 3
 
-def mandelbrot(ar, ai)
+def mandelbrot(ar, bi)
     zr = 0
     zi = 0
     4.times do
         # z = z*z + a  (fixed-point: divide by FACTOR after multiply)
         new_zr = (zr * zr - zi * zi) / FACTOR + ar
-        new_zi = (2 * zr * zi)        / FACTOR + ai
+        new_zi = (2 * zr * zi)        / FACTOR + bi
         zr = new_zr
         zi = new_zi
     end
@@ -26,3 +26,6 @@ end
     end
     puts
 end
+
+puts mandelbrot(0, 0)
+puts mandelbrot(150, 30)

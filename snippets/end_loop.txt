@@ -1,0 +1,26 @@
+
+        out_label #out_number  #print y
+        push 44
+        out_char # print comma
+        out_label #out_number              #  print x
+        push 32
+        out_char # print space
+
+
+        # end loop x
+        push 3                  #
+        add x                   # x = x + 3
+        duplicate               # copy x for comparison
+        push 50                 #
+        greater                 # 1 if x > 50 (stop condition)
+        not                     # 1 if x <= 50 (continue condition)
+        branch 6                # jump to inner loop start if x <= 50
+
+    # end loop y
+    pop                     # discard x_final
+    push 5                  #
+    subtract y              # y = y - 5
+    duplicate               # copy y for comparison
+    push -101               #
+    greater                 # 1 if y > -101 (y.e. y >= -100, continue)
+    branch 1                # jump to outer loop start if still in range

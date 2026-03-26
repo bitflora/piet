@@ -1,0 +1,23 @@
+push 100 y              #  initialize outer counter
+    # loop y
+
+    push 10                 #
+    out_char                #  newline
+    push -200 x             #  initialize inner counter
+        # loop x
+        duplicate x_copy
+
+        push 3
+        push 2
+        roll # dig up y
+        duplicate y_copy
+debug_stack
+        push 3
+        push 1
+        roll
+
+        push 4
+        push 1
+        roll
+
+debug_stack

@@ -165,3 +165,11 @@ roll
 pop
 pop
 pop
+
+push 200 cutoff
+greater comp
+push 10
+*
+push 32
++
+out_char

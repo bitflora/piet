@@ -40,6 +40,7 @@ enum CommandType {
     // not real piet commands, useful for this pseudocode
     Branch,
     DebugStack,
+    OutLabel,
     NoOp,
 }
 
@@ -98,6 +99,7 @@ impl Command {
                     "out_char" => CommandType::OutChar,
                     "branch" => CommandType::Branch,
                     "debug_stack" => CommandType::DebugStack,
+                    "out_label" => CommandType::OutLabel,
                     "noop" | "#" => CommandType::NoOp,
                     _ => panic!("bad command: {}", split[0])
                 }
@@ -265,6 +267,13 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
             },
             CommandType::Roll => {
                 // https://piet.forumotion.com/t7-roll-implementation
+                // https://twoguysarguing.wordpress.com/2010/03/15/piet-roll-command/
+                // The ROLL command pops two values off of the stack puts nothing back.
+                // The top value from the stack defines how many “turns” the roll executes.
+                // A turn will put the top value on the bottom and shift all other values “up” one place toward the top of the stack.
+                // The second value defines the “depth” of the roll or how many elements should be included in each turn starting at the top of the stack.
+
+                // As the main Piet page suggests, a ROLL to a depth of X and a single turn will effectively bury the top of the stack down X spots
                 let num_rolls = stack.pop().unwrap();
                 let depth = stack.pop().unwrap() as usize;
                 labels.pop();
@@ -310,6 +319,10 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
                     println!("{}", labels[i]);
                 }
             },
+            CommandType::OutLabel => {
+                write!(writer, "{}", labels.pop().unwrap()).unwrap();
+                stack.pop();
+            },
             CommandType::NoOp => {
                 // Do nothing
             }
@@ -348,12 +361,14 @@ mod tests {
         assert_eq!(stack, vec![7, 6, 5, 4, 1, 3, 2]);
         assert_eq!(labels, vec!["a", "b", "c", "d", "g", "e", "f"]);
 
+        // swap top 2 items
         let cmds: Vec<Command> = vec![
             "push 1",
             "push 2",
             "push 3",
             "push 4",
             "push 5",
+
             "push 2",
             "push 3",
             "roll",
@@ -633,5 +648,32 @@ mod tests {
         test_50_70.extend(program.clone());
         let (stack, _, _, _) = run_code(test_50_70, true, &mut vec![]);
         assert_eq!(stack, vec![325]); //Ruby will give very different answers, due to stupid integer division rules
+    }
+
+    #[test]
+    fn test_mandelbrot_complex_print() {
+        let program = read_file("tests/fixtures/mandelbrot_complex_print.txt");
+
+        let mut test =  vec![
+            Command::parse("push 5 a"),
+            Command::parse("push 5 b"),
+        ];
+        test.extend(program.clone());
+        let mut output: Vec<u8> = Vec::new();
+        let (stack, _, _, _) = run_code(test, true, &mut output);
+        assert_eq!(String::from_utf8(output).unwrap(), " ");
+        assert_eq!(stack, vec![]);
+
+
+        let mut test =  vec![
+            Command::parse("push -50 a"),
+            Command::parse("push -70 b"),
+        ];
+        test.extend(program.clone());
+        let mut output: Vec<u8> = Vec::new();
+        let (stack, _, _, _) = run_code(test, true, &mut output);
+        assert_eq!(String::from_utf8(output).unwrap(), "*");
+        assert_eq!(stack, vec![]);
+
     }
 }

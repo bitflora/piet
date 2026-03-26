@@ -1,4 +1,17 @@
-# assumes you have already pushed x/a then y/b; ie: y/b should be on top of the stack
+push 50 i               # line 0: initialize outer counter (range 50 to -50, step -5)
+push -50 j              # line 1: OUTER LOOP START — reinitialize inner counter (range -50 to 50, step +3)
+push 2                  # line 2: INNER LOOP START — stack: [i(bottom), j(top)]
+push 1                  # line 3
+roll                    # line 4: swap → [j(bottom), i(top)]
+dup                     # line 5: → [j, i, i_copy]
+push 3                  # line 6
+push 2                  # line 7
+roll                    # line 8: → [i, i_copy, j]
+dup                     # line 9: → [i, i_copy, j, j_copy]
+push 3                  # line 10
+push 2                  # line 11
+roll                    # line 12: → [i, j, j_copy(a=inner), i_copy(b=outer)]
+# assumes you have already pushed a then b
 
 push 10 loop_counter    # loop counter
 
@@ -10,7 +23,7 @@ push 2 a_acc
 debug_stack
 
 # new_a1 = a_acc * a_acc / FACTOR
-dup
+ dup
 dup
 *
 push 100 FACTOR
@@ -130,7 +143,7 @@ roll # pull loop_counter_copy
 debug_stack
 # stack: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
 
-branch 10 # loop 4 times
+branch 23 # loop 4 times (mandelbrot target line 10 + preamble offset 13 = 23)
 
 # stack: a_acc, b_acc, loop_counter, b, a
 
@@ -165,3 +178,20 @@ roll
 pop
 pop
 pop
+out_number              # line 180: print mandelbrot result
+push 10                 # line 181
+out_char                # line 182: newline
+push 3                  # line 183
+add j                   # line 184: j = j + 3
+dup                     # line 185: copy j for comparison
+push 50                 # line 186
+greater                 # line 187: 1 if j > 50 (stop condition)
+not                     # line 188: 1 if j <= 50 (continue condition)
+branch 2                # line 189: jump to INNER LOOP START
+pop                     # line 190: discard j_final
+push 5                  # line 191
+subtract i              # line 192: i = i - 5
+dup                     # line 193: copy i for comparison
+push -51                # line 194
+greater                 # line 195: 1 if i > -51 (continue while i >= -50)
+branch 1                # line 196: jump to OUTER LOOP START

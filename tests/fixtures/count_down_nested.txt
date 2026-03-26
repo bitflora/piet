@@ -1,24 +1,25 @@
-push 100 i              # line 0:  initialize outer counter
-duplicate               # line 1:  OUTER LOOP START — copy i for printing
-out_number              # line 2:  print i
-push 10                 # line 3:
-out_char                # line 4:  newline
-push -200 j             # line 5:  initialize inner counter
-duplicate               # line 6:  INNER LOOP START — copy j for printing
-out_number              # line 7:  print j
-push 10                 # line 8:
-out_char                # line 9:  newline
-push 3                  # line 10:
-add j                   # line 11: j = j + 3
-duplicate               # line 12: copy j for comparison
-push 50                 # line 13:
-greater                 # line 14: 1 if j > 50 (stop condition)
-not                     # line 15: 1 if j <= 50 (continue condition)
-branch 6                # line 16: jump to inner loop start if j <= 50
-pop                     # line 17: discard j_final
-push 5                  # line 18:
-subtract i              # line 19: i = i - 5
-duplicate               # line 20: copy i for comparison
-push -101               # line 21:
-greater                 # line 22: 1 if i > -101 (i.e. i >= -100, continue)
-branch 1                # line 23: jump to outer loop start if still in range
+push 100 i              #  initialize outer counter
+    duplicate i_copy               #  OUTER LOOP START — copy i for printing
+    out_number              #  print i
+    push 10                 #
+    out_char                #  newline
+    push -200 j             #  initialize inner counter
+        duplicate j_copy               #  INNER LOOP START — copy j for printing
+        out_number              #  print j
+
+        push 10                 #
+        out_char                #  newline
+        push 3                  #
+        add j                   # j = j + 3
+        duplicate               # copy j for comparison
+        push 50                 #
+        greater                 # 1 if j > 50 (stop condition)
+        not                     # 1 if j <= 50 (continue condition)
+        branch 6                # jump to inner loop start if j <= 50
+    pop                     # discard j_final
+    push 5                  #
+    subtract i              # i = i - 5
+    duplicate               # copy i for comparison
+    push -101               #
+    greater                 # 1 if i > -101 (i.e. i >= -100, continue)
+    branch 1                # jump to outer loop start if still in range
