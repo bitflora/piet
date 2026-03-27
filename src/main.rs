@@ -1,133 +1,6 @@
-use std::fs::File;
-use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 use std::env;
-
-// https://www.dangermouse.net/esoteric/piet.html
-
-#[derive(PartialEq, Debug)]
-enum CodelChooser {
-    Left,
-    Right,
-}
-
-#[derive(PartialEq, Debug)]
-enum DirectionPointer {
-    Right,
-    Down,
-    Left,
-    Up,
-}
-
-#[derive(Clone)]
-enum CommandType {
-    Push,
-    Pop,
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Mod,
-    Not,
-    Greater,
-    Pointer,
-    Switch,
-    Duplicate,
-    Roll,
-    InNumber,
-    InChar,
-    OutNumber,
-    OutChar,
-    // not real piet commands, useful for this pseudocode
-    Branch,
-    DebugStack,
-    OutLabel,
-    NoOp,
-}
-
-#[derive(Clone)]
-struct Command {
-    action: CommandType,
-    value: i32,
-    label: String,
-    source: String,
-}
-
-impl Command {
-    fn clean_line(line: &str) -> &str {
-        let line = line.trim();
-
-        if let Some(comment) = line.find('#') {
-            return &line[0..comment].trim();
-        } else {
-            return line;
-        }
-    }
-    pub fn parse(line: &str) -> Command {
-        let source = line.to_string();
-        let line = Command::clean_line(line);
-        if line == "" {
-            // blank line is also a noop, for easy goto
-            return Command {
-                action: CommandType::NoOp,
-                value: -1,
-                label: "".to_string(),
-                source
-            };
-        }
-        let split: Vec<&str> = line.split(' ').collect();
-        assert!(split.len() > 0);
-        let cmd = split[0].to_ascii_lowercase();
-        Command {
-            action: {
-                match cmd.as_str() {
-                    "push" => CommandType::Push,
-                    "pop" => CommandType::Pop,
-                    "add" | "+" => CommandType::Add,
-                    "subtract" | "-" => CommandType::Subtract,
-                    "multiply" | "*" => CommandType::Multiply,
-                    "divide" | "/" => CommandType::Divide,
-                    "mod" | "%" => CommandType::Mod,
-                    "not" => CommandType::Not,
-                    "greater" | ">" => CommandType::Greater,
-                    "pointer" => CommandType::Pointer,
-                    "switch" => CommandType::Switch,
-                    "duplicate" | "dup" => CommandType::Duplicate,
-                    "roll" => CommandType::Roll,
-                    "in_number" => CommandType::InNumber,
-                    "in_char" => CommandType::InChar,
-                    "out_number" => CommandType::OutNumber,
-                    "out_char" => CommandType::OutChar,
-                    "branch" => CommandType::Branch,
-                    "debug_stack" => CommandType::DebugStack,
-                    "out_label" => CommandType::OutLabel,
-                    "noop" | "#" => CommandType::NoOp,
-                    _ => panic!("bad command: {}", split[0])
-                }
-            },
-            value: if split.len() > 1 && split[0] != "#" {
-                split[1].parse().unwrap_or(-1)
-            } else {
-                -1
-            },
-            label: match cmd.as_str() {
-                "push" => split.get(2).unwrap_or(&"").to_string(),
-                "add" | "+" |
-                "subtract" | "-" |
-                "multiply" | "*" |
-                "divide" | "/" |
-                "mod" | "%" |
-                "not" |
-                "greater" | ">" |
-                "duplicate" | "dup" |
-                "in_number" |
-                "in_char"  => split.get(1).unwrap_or(&"").to_string(),
-                _ => "".to_string()
-            },
-            source
-
-        }
-    }
-}
+pub use piet::{Command, CommandType, CodelChooser, DirectionPointer, read_file};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -269,9 +142,9 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
                 // https://piet.forumotion.com/t7-roll-implementation
                 // https://twoguysarguing.wordpress.com/2010/03/15/piet-roll-command/
                 // The ROLL command pops two values off of the stack puts nothing back.
-                // The top value from the stack defines how many “turns” the roll executes.
-                // A turn will put the top value on the bottom and shift all other values “up” one place toward the top of the stack.
-                // The second value defines the “depth” of the roll or how many elements should be included in each turn starting at the top of the stack.
+                // The top value from the stack defines how many "turns" the roll executes.
+                // A turn will put the top value on the bottom and shift all other values "up" one place toward the top of the stack.
+                // The second value defines the "depth" of the roll or how many elements should be included in each turn starting at the top of the stack.
 
                 // As the main Piet page suggests, a ROLL to a depth of X and a single turn will effectively bury the top of the stack down X spots
                 let num_rolls = stack.pop().unwrap();
@@ -332,22 +205,6 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
     let ret_labels: Vec<String> = labels.iter().map(|x| x.to_string()).collect();
 
     (stack, ret_labels, dp, cc)
-}
-
-fn read_file(file_path: &str) -> Vec<Command> {
-    println!("Openning {}", file_path);
-    let file = File::open(file_path).unwrap();
-    let reader = io::BufReader::new(file);
-
-    let mut ret: Vec<Command> = Vec::new();
-
-    for line in reader.lines() {
-        let line = line.unwrap();
-
-        ret.push(Command::parse(&line))
-    }
-
-    return ret
 }
 
 #[cfg(test)]
