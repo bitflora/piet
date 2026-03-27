@@ -242,7 +242,7 @@ fn print_usage(prog: &str) {
     eprintln!("  --start N       First line to compile (0-indexed, inclusive)");
     eprintln!("  --end N         Last line to compile (0-indexed, inclusive)");
     eprintln!("  -o / --output   Output GIF path (default: <input>.gif)");
-    eprintln!("  --codel-size N  Pixels per codel (default: 10)");
+    eprintln!("  --codel-size N  Pixels per codel (default: 1)");
 }
 
 #[cfg(test)]
@@ -291,7 +291,7 @@ fn main() {
     let mut output_file: Option<String> = None;
     let mut start_line: Option<usize> = None;
     let mut end_line: Option<usize> = None;
-    let mut codel_size: u32 = 10;
+    let mut codel_size: u32 = 1;
 
     let mut i = 1;
     while i < args.len() {

@@ -1,0 +1,20 @@
+push 10
+push 10
+* y              #  initialize outer counter to 100
+    # loop y
+
+    push 10                 #
+    out_char                #  newline
+    push 1
+    push 2
+    - negative1
+    push 20
+    push 10
+    *
+    * x             #  initialize inner counter to -200
+        # loop x
+        duplicate x_copy
+
+        push 3
+        push 2
+        roll # dig up y
