@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Rust interpreter for Pietxt, a text-based variant of the [Piet esoteric programming language](https://www.dangermouse.net/esoteric/piet.html). The original Piet uses images with colored pixels; this project uses plain text files for easier prototyping before converting to the visual format.
 
+
+
 ## Commands
 
 ```bash
@@ -19,7 +21,9 @@ cargo test -- --nocapture  # Run tests with stdout visible
 
 ## Architecture
 
-Everything lives in `src/main.rs`. The interpreter is intentionally simple with no external dependencies.
+The interpreter lives in `src/main.rs`. The compiler is in src/bin/pietc.rs.
+
+npietedit/ contains npietedit.py, a UI for editting piet programs, translated from the file npietedit-0.9d.tcl.
 
 ## Pietxt
 
