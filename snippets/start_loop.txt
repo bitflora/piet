@@ -1,9 +1,18 @@
-push 100 y              #  initialize outer counter
+push 10
+push 10
+* y              #  initialize outer counter
     # loop y
 
     push 10                 #
     out_char                #  newline
-    push -200 x             #  initialize inner counter
+	push 1
+	not
+	push 1
+	- negative1
+	push 20
+	push 10
+	*
+	* x             #  initialize inner counter
         # loop x
         duplicate x_copy
 
@@ -40,7 +49,9 @@ push 100 y              #  initialize outer counter
         push 3                  #
         add x                   # x = x + 3
         duplicate               # copy x for comparison
-        push 50                 #
+		push 5
+        push 10
+		*
         greater                 # 1 if x > 50 (stop condition)
         not                     # 1 if x <= 50 (continue condition)
         branch 6                # jump to inner loop start if x <= 50
@@ -50,6 +61,13 @@ push 100 y              #  initialize outer counter
     push 5                  #
     subtract y              # y = y - 5
     duplicate               # copy y for comparison
-    push -101               #
+	push 1
+	not
+	push 10
+	push 10
+	*
+	-
+	push 1
+	- # negative 101
     greater                 # 1 if y > -101 (y.e. y >= -100, continue)
     branch 1                # jump to outer loop start if still in range

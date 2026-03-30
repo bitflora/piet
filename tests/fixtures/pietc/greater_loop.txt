@@ -1,0 +1,12 @@
+# Countdown loop using greater for the condition check.
+# `greater` produces 0 or 1 directly, so `branch` emits only `pointer` (no not;not).
+push 3
+duplicate
+out_number
+push 1
+subtract
+duplicate
+push 0
+greater
+branch 0
+pop

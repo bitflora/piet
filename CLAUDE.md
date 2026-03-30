@@ -12,6 +12,7 @@ A Rust interpreter for Pietxt, a text-based variant of the [Piet esoteric progra
 cargo build              # Build
 cargo run                # Run default program (program.txt)
 cargo run -- myfile.txt  # Run a specific program file
+cargo run --bin pietc myfile.txt # compile a program to a gif
 cargo test               # Run all tests
 cargo test -- --nocapture  # Run tests with stdout visible
 ```

@@ -1,0 +1,13 @@
+# Countdown loop: prints 3, 2, 1 then stops.
+# branch 0 compiles to: not; not; pointer
+# Re-entry instruction (pointer→push_3 block color transition): push(1)
+# This pushes an extra 1 on re-entry; the loop body accounts for this
+# by being aware that the stack state differs on re-entry vs first pass.
+push 3
+duplicate
+out_number
+push 1
+subtract
+duplicate
+branch 0
+pop
