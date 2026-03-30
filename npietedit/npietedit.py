@@ -240,6 +240,7 @@ def cpick(event):
         return
     cur_idx = n_idx
     pick_color(cur_idx)
+    redraw_cmd_canvas()
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +259,23 @@ def cmd_click(event):
         ncy = ((cur_idx // 6) + cmd_light) % 3
         cur_idx = ncx + 6 * ncy
         pick_color(cur_idx)
+        redraw_cmd_canvas()
+
+
+def redraw_cmd_canvas():
+    cmd_canvas.delete("all")
+    for i in range(18):
+        cx = 2 + 56 * (i % 6)
+        cy = 2 + c_zc * (i // 6)
+        cmd_hue   = i % 6
+        cmd_light = (i // 6) % 3
+        ncx = ((cur_idx % 6) + cmd_hue)   % 6
+        ncy = ((cur_idx // 6) + cmd_light) % 3
+        result_idx = ncx + 6 * ncy
+        fill_col = idx2col(result_idx)
+        cmd_canvas.create_rectangle(cx, cy, cx + 54, cy + c_zc - 2,
+                                    fill=fill_col, outline="black")
+        cmd_canvas.create_text(cx + 2, cy + 2, anchor="nw", text=COMMANDS[i])
 
 
 # ---------------------------------------------------------------------------
@@ -436,11 +454,7 @@ cmd_canvas = tk.Canvas(cmd_frame, bg="white",
     width=c_width, height=c_zc * 3 + 2)
 cmd_canvas.pack(fill="both")
 
-for i in range(18):
-    cx = 2 + 56 * (i % 6)
-    cy = 2 + c_zc * (i // 6)
-    cmd_canvas.create_text(cx + 2, cy + 2, anchor="nw", text=COMMANDS[i])
-    cmd_canvas.create_rectangle(cx, cy, cx + 54, cy + c_zc - 2, fill="", outline="black")
+redraw_cmd_canvas()
 
 cmd_canvas.bind("<Button-1>", cmd_click)
 
