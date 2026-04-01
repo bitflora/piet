@@ -359,20 +359,24 @@ def load_cells(fname):
 
 
 def on_save():
+    global filename
     fname = filedialog.asksaveasfilename(
         initialfile=filename,
         filetypes=[("PPM files", "*.ppm"), ("All files", "*")],
         defaultextension=".ppm",
     ) or filename
+    filename = fname
     save_cells(fname)
 
 
 def on_load():
+    global filename
     fname = filedialog.askopenfilename(
         initialfile=filename,
         filetypes=[("PPM files", "*.ppm"), ("All files", "*")],
     )
     if fname:
+        filename = fname
         load_cells(fname)
 
 

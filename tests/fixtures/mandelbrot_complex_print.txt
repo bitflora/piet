@@ -1,6 +1,6 @@
 # assumes you have already pushed x/a then y/b; ie: y/b should be on top of the stack
 
-push 10 loop_counter    # loop counter
+push 4 loop_counter    # loop counter
 
 # Initial accumulator values
 push 1 b_acc
@@ -12,8 +12,9 @@ debug_stack
 # new_a1 = a_acc * a_acc / FACTOR
 dup
 dup
+debug_stack
 *
-push 100 FACTOR
+push 50 FACTOR
 / new_a1
 
 # stack: new_a1, a_acc, b_acc, loop_counter, b, a
@@ -26,7 +27,7 @@ roll
 dup
 dup
 *
-push 100 FACTOR
+push 50 FACTOR
 / new_a2
 
 # stack: new_a2, b_acc, new_a1, a_acc, loop_counter, b, a
@@ -54,7 +55,7 @@ push 3
 push 2
 roll
 * a_acc_times_b_acc # a_acc * b_acc
-push 100 FACTOR
+push 50 FACTOR
 divide
 dup
 + new_b
@@ -140,7 +141,7 @@ branch 10 # loop 4 times
 # roll # pull a_acc
 dup
 * a_acc2
-push 100 FACTOR
+push 50 FACTOR
 divide a_final
 debug_stack
 
@@ -150,7 +151,7 @@ roll # pull b_acc
 debug_stack
 dup
 * b_acc2
-push 100 FACTOR
+push 50 FACTOR
 divide b_final
 debug_stack
 + return

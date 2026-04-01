@@ -169,7 +169,8 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
                 labels.pop();
             },
             CommandType::OutChar => {
-                write!(writer, "{}", char::from_u32(stack.pop().unwrap() as u32).unwrap()).unwrap();
+                let c = char::from_u32(stack.pop().unwrap() as u32).unwrap();
+                write!(writer, "{}", c).unwrap();
                 labels.pop();
             },
             CommandType::Branch => {
@@ -525,6 +526,16 @@ mod tests {
         let mut test =  vec![
             Command::parse("push -50 a"),
             Command::parse("push -70 b"),
+        ];
+        test.extend(program.clone());
+        let mut output: Vec<u8> = Vec::new();
+        let (stack, _, _, _) = run_code(test, true, &mut output);
+        assert_eq!(String::from_utf8(output).unwrap(), "*");
+        assert_eq!(stack, vec![]);
+
+        let mut test =  vec![
+            Command::parse("push -100 a"),
+            Command::parse("push 70 b"),
         ];
         test.extend(program.clone());
         let mut output: Vec<u8> = Vec::new();

@@ -36,12 +36,14 @@ push 10
 
         # begin number work
 
-        out_number  #print y_copy
-        push 44
-        out_char # print comma
-        out_number              #  print x_copy
-        push 32
-        out_char # print space
+        #out_number  #print y_copy
+        #push 44
+        #out_char # print comma
+        #out_number              #  print x_copy
+        #push 32
+        #out_char # print space
+
+
 
 
 
@@ -54,7 +56,7 @@ push 10
 		*
         greater                 # 1 if x > 50 (stop condition)
         not                     # 1 if x <= 50 (continue condition)
-        branch 6                # jump to inner loop start if x <= 50
+        branch 15                # jump to inner loop start if x <= 50
 
     # end loop y
     pop                     # discard x_final
@@ -70,4 +72,4 @@ push 10
 	push 1
 	- # negative 101
     greater                 # 1 if y > -101 (y.e. y >= -100, continue)
-    branch 1                # jump to outer loop start if still in range
+    branch 3                # jump to outer loop start if still in range

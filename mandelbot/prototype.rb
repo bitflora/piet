@@ -1,4 +1,4 @@
-FACTOR = 100
+FACTOR = 50
 
 # Complex numbers represented as two integers (real, imag) scaled by FACTOR.
 # e.g., 1.5 + 0.3i => (150, 30)
@@ -12,20 +12,31 @@ def mandelbrot(ar, bi)
     zi = 0
     4.times do
         # z = z*z + a  (fixed-point: divide by FACTOR after multiply)
+        if (zr*zr) >= 2147483647
+            puts "Overflow: #{zr} * #{zr} = #{zr*zr}, #{ar} + #{bi}i"
+        end
         new_zr = (zr * zr - zi * zi) / FACTOR + ar
         new_zi = (2 * zr * zi)        / FACTOR + bi
         zr = new_zr
         zi = new_zi
     end
-    zr * zr + zi * zi < 4 * FACTOR * FACTOR
+    zr * zr + zi * zi
 end
 
-100.step(to: -100, by: -5) do |y|
-    (-200).step(to: 50, by: 3) do |x|
-        print mandelbrot(x, y) ? '*' : ' '
+70.step(to: -70, by: -5) do |y|
+    (-100).step(to: 50, by: 3) do |x|
+        v = mandelbrot(x, y)
+        if v < 2 * FACTOR * FACTOR
+            print '#'
+        elsif v < 4 * FACTOR * FACTOR
+            print '*'
+        elsif v < 5 * FACTOR * FACTOR
+            print '+'
+        elsif v < 6 * FACTOR * FACTOR
+            print '-'
+        else
+            print ' '
+        end
     end
     puts
 end
-
-puts mandelbrot(0, 0)
-puts mandelbrot(150, 30)
