@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 use std::env;
+use std::panic::{self, AssertUnwindSafe};
 pub use piet::{Command, CommandType, CodelChooser, DirectionPointer, read_file};
 
 fn main() {
@@ -18,6 +19,7 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
 
     let mut command_num: usize = 0;
 
+    let result = panic::catch_unwind(AssertUnwindSafe(|| {
     while command_num < commands.len() {
         let comm = &commands[command_num];
         if debug {
@@ -47,7 +49,6 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
                 let b = stack.pop().unwrap();
                 labels.pop();
                 labels.pop();
-                println!("{} - {}", b, a);
                 stack.push(b - a);
                 labels.push(&comm.label);
             },
@@ -182,16 +183,7 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
                 }
             },
             CommandType::DebugStack => {
-                println!("Stack: ");
-
-                for i in (0..stack.len()).rev() {
-                    let num = stack[i].to_string();
-                    print!("{}", num);
-                    for _ in 0..(10 - num.len()) {
-                        print!(" ");
-                    }
-                    println!("{}", labels[i]);
-                }
+                printStack(&stack, &labels);
             },
             CommandType::OutLabel => {
                 write!(writer, "{}", labels.pop().unwrap()).unwrap();
@@ -202,10 +194,35 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
             }
         }
     }
+    })); // end catch_unwind
+
+    if let Err(e) = result {
+        let crashed_line = command_num.saturating_sub(1);
+        if let Some(comm) = commands.get(crashed_line) {
+            eprintln!("Panicked at line {}: {}", crashed_line, comm.source);
+        }
+        printStack(&stack, &labels);
+        panic::resume_unwind(e);
+    }
 
     let ret_labels: Vec<String> = labels.iter().map(|x| x.to_string()).collect();
 
     (stack, ret_labels, dp, cc)
+}
+
+fn printStack(stack: &Vec<i32>, labels: &Vec<&str>) {
+    println!("Stack:");
+    for (i, (val, label)) in stack.iter().zip(labels.iter()).enumerate() {
+        println!("{}: {} ({})", i, val, label);
+    }
+    // for i in (0..stack.len()).rev() {
+    //     let num = stack[i].to_string();
+    //     print!("{}", num);
+    //     for _ in 0..(10 - num.len()) {
+    //         print!(" ");
+    //     }
+    //     println!("{}", labels[i]);
+    // }
 }
 
 #[cfg(test)]
@@ -542,6 +559,24 @@ mod tests {
         let (stack, _, _, _) = run_code(test, true, &mut output);
         assert_eq!(String::from_utf8(output).unwrap(), "*");
         assert_eq!(stack, vec![]);
+    }
 
+    #[test]
+    fn test_mandelbrot_complex_print_range() {
+        let program = read_file("tests/fixtures/mandelbrot_complex_print.txt");
+
+        for y in (-70..70).step_by(5) {
+            for x in (-100..50).step_by(3) {
+                let mut test =  vec![
+                    Command::parse(format!("push {} x", x).as_str()),
+                    Command::parse(format!("push {} y", y).as_str()),
+                ];
+                println!("Testing {}, {}", x, y);
+                test.extend(program.clone());
+                let mut output: Vec<u8> = Vec::new();
+                let (stack, _, _, _) = run_code(test, false, &mut output);
+                assert_eq!(stack, vec![]);
+            }
+        }
     }
 }

@@ -1,5 +1,5 @@
 push 10
-push 10
+push 7
 * y              #  initialize outer counter
     # loop y
 
@@ -9,7 +9,7 @@ push 10
 	not
 	push 1
 	- negative1
-	push 20
+	push 10
 	push 10
 	*
 	* x             #  initialize inner counter
@@ -45,6 +45,184 @@ push 10
 
 
 
+# assumes you have already pushed x/a then y/b; ie: y/b should be on top of the stack
+
+push 4 loop_counter    # loop counter
+
+# Initial accumulator values
+push 1 b_acc
+push 2 a_acc
+
+# Repeat 4 times (Ruby's 4.times)
+
+
+# new_a1 = a_acc * a_acc / FACTOR
+dup
+dup
+
+*
+push 50 FACTOR
+/ new_a1
+
+# stack: new_a1, a_acc, b_acc, loop_counter, b, a
+
+# new_a2 = b_acc * b_acc / FACTOR
+push 3
+push 2
+roll
+# stack: b_acc, new_a1, a_acc, loop_counter, b, a
+dup
+dup
+*
+push 50 FACTOR
+/ new_a2
+
+# stack: new_a2, b_acc, new_a1, a_acc, loop_counter, b, a
+
+# new_a = new_a1 - new_a2
+push 3
+push 2
+roll
+
+push 2
+push 1
+roll
+
+- new_a
+# stack: new_a, b_acc, a_acc, loop_counter, b, a
+
+# ((((a_acc b_acc *) FACTOR /) dup) +)
+# new_b = a_acc * b_acc / FACTOR + a_acc * b_acc / FACTOR
+
+push 2
+push 1
+roll
+
+push 3
+push 2
+roll
+* a_acc_times_b_acc # a_acc * b_acc
+push 50 FACTOR
+divide
+dup
++ new_b
+
+
+# stack: new_b, new_a, loop_counter, b, a
+
+# b_acc = new_b + b
+# pull b
+push 4
+push 3
+roll
+dup b_copy
+
+# pull new_b
+push 3
+push 2
+roll
+
+
+
++ b_acc
+# stack b_acc, b, new_a, loop_counter, a
+
+# a_acc = new_a + a
+push 5
+push 4
+roll # pull a
+dup a_copy
+
+push 5
+push 4
+roll # pull new_a
++ a_acc
+
+# stack: a_acc, a, b_acc, b, loop_counter
+
+
+# tidy stack into this order: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
+
+# pull loop_counter, decrement, dup
+push 5
+push 4
+roll # pull loop_counter
+
+push 1
+- loop_counter
+dup loop_counter_copy
+
+# stack: loop_counter_copy, loop_counter, a_acc, a, b_acc, b
+
+push 4
+push 3
+roll # pull a
+
+push 6
+push 5
+roll # pull b
+push 4
+push 3
+roll # pull loop_counter
+push 6
+push 5
+roll # pull b_acc
+# stack: b_acc, loop_counter, b, a, loop_counter_copy, a_acc
+push 6
+push 5
+roll # pull a_acc
+push 6
+push 5
+roll # pull loop_counter_copy
+
+
+# stack: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
+
+branch 57 # loop 4 times
+
+# stack: a_acc, b_acc, loop_counter, b, a
+
+# (a_acc*a_acc/FACTOR + b_acc*b_acc/FACTOR)
+# push 5
+# push 4
+# roll # pull a_acc
+dup
+* a_acc2
+push 50 FACTOR
+divide a_final
+
+
+push 2
+push 1
+roll # pull b_acc
+
+dup
+* b_acc2
+push 50 FACTOR
+divide b_final
+
++ return
+
+
+# Clear out everything but the return value
+# Move return to the bottom
+push 4
+push 1
+roll
+# pop the rest
+pop
+pop
+pop
+
+push 200 cutoff
+greater comp
+push 10
+*
+push 32
++
+out_char
+
+
 
 
         # end loop x
@@ -65,11 +243,9 @@ push 10
     duplicate               # copy y for comparison
 	push 1
 	not
-	push 10
+	push 7
 	push 10
 	*
-	-
-	push 1
-	- # negative 101
+	- # negative 70
     greater                 # 1 if y > -101 (y.e. y >= -100, continue)
     branch 3                # jump to outer loop start if still in range

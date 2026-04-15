@@ -7,12 +7,12 @@ push 1 b_acc
 push 2 a_acc
 
 # Repeat 4 times (Ruby's 4.times)
-debug_stack
+
 
 # new_a1 = a_acc * a_acc / FACTOR
 dup
 dup
-debug_stack
+
 *
 push 50 FACTOR
 / new_a1
@@ -46,7 +46,7 @@ roll
 
 # ((((a_acc b_acc *) FACTOR /) dup) +)
 # new_b = a_acc * b_acc / FACTOR + a_acc * b_acc / FACTOR
-debug_stack
+
 push 2
 push 1
 roll
@@ -60,7 +60,7 @@ divide
 dup
 + new_b
 
-debug_stack
+
 # stack: new_b, new_a, loop_counter, b, a
 
 # b_acc = new_b + b
@@ -75,7 +75,7 @@ push 3
 push 2
 roll
 
-debug_stack
+
 
 + b_acc
 # stack b_acc, b, new_a, loop_counter, a
@@ -92,7 +92,7 @@ roll # pull new_a
 + a_acc
 
 # stack: a_acc, a, b_acc, b, loop_counter
-debug_stack
+
 
 # tidy stack into this order: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
 
@@ -128,7 +128,7 @@ push 6
 push 5
 roll # pull loop_counter_copy
 
-debug_stack
+
 # stack: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
 
 branch 10 # loop 4 times
@@ -143,20 +143,21 @@ dup
 * a_acc2
 push 50 FACTOR
 divide a_final
-debug_stack
+
 
 push 2
 push 1
 roll # pull b_acc
-debug_stack
+
 dup
+debug_stack
 * b_acc2
 push 50 FACTOR
 divide b_final
-debug_stack
+
 + return
 
-debug_stack
+
 # Clear out everything but the return value
 # Move return to the bottom
 push 4
