@@ -110,26 +110,6 @@ struct PietBlock {
     size: u32,
 }
 
-// Tracks the branch compiled from a `branch X` instruction.
-struct BranchInfo {
-    loop_target_op_idx: usize, // index into ops[] of the first op at the branch target line
-    pointer_op_idx: usize,     // index of the Pointer op emitted for this branch
-}
-
-// How many PietOps a given Command expands to (mirrors expand_commands logic).
-fn ops_count_for_command(cmd: &Command) -> usize {
-    match cmd.action {
-        CommandType::Push => {
-            if cmd.value > 0 { 1 }
-            else if cmd.value == 0 { 2 }  // push 1; not
-            else { 4 }                     // push 1; not; push |v|; subtract
-        }
-        CommandType::Branch => 3,  // not; not; pointer
-        CommandType::NoOp | CommandType::DebugStack | CommandType::OutLabel => 0,
-        _ => 1,
-    }
-}
-
 // Translate filtered Pietxt commands into a flat sequence of Piet operations.
 // push 0   → push 1; not         (result: 0)
 // push -N  → push 1; not; push N; subtract  (result: 0 - N = -N)
@@ -137,64 +117,7 @@ fn ops_count_for_command(cmd: &Command) -> usize {
 // branch X → not; not; pointer   (normalize TOS to 0/1, rotate DP by that amount)
 //   ... but if the immediately preceding real command was `greater`, skip not;not since
 //   greater already produces exactly 0 or 1: branch X → pointer
-//
-// Returns the ops and optionally a BranchInfo describing the single supported branch.
-fn expand_commands(commands: Vec<Command>) -> (Vec<PietOp>, Option<BranchInfo>) {
-    // Pass 1: build line_start[i] = op index where line i begins emitting.
-    // Simultaneously find the (at most one valid) branch command.
-    let mut line_start: Vec<usize> = Vec::with_capacity(commands.len());
-    let mut running_op_count: usize = 0;
-    let mut branch_info: Option<BranchInfo> = None;
-    let mut branch_seen = false;
-    // Tracks whether the last command that emits ≥1 op was `greater`.
-    let mut prev_real_was_greater = false;
-
-    for (line_idx, cmd) in commands.iter().enumerate() {
-        line_start.push(running_op_count);
-        if matches!(cmd.action, CommandType::Branch) {
-            let target = cmd.value as usize;
-            if branch_seen {
-                eprintln!(
-                    "Warning: only one `branch` per program is supported; \
-                     additional branch skipped (line: {})",
-                    cmd.source.trim()
-                );
-            } else if cmd.value < 0 || target >= line_idx {
-                eprintln!(
-                    "Warning: `branch` must target a previous line (backward jump only); \
-                     skipped (line: {})",
-                    cmd.source.trim()
-                );
-            } else if target >= commands.len() {
-                eprintln!(
-                    "Warning: `branch` target {} is out of bounds; skipped (line: {})",
-                    target, cmd.source.trim()
-                );
-            } else {
-                // When prev was `greater`, skip not;not → Pointer is the 1st op (offset 0).
-                // Otherwise, Pointer is the 3rd op (not; not; pointer → offset 2).
-                let pointer_offset = if prev_real_was_greater { 0 } else { 2 };
-                branch_info = Some(BranchInfo {
-                    loop_target_op_idx: line_start[target],
-                    pointer_op_idx: running_op_count + pointer_offset,
-                });
-                branch_seen = true;
-            }
-        }
-        let op_count = if matches!(cmd.action, CommandType::Branch) {
-            if prev_real_was_greater { 1 } else { 3 }
-        } else {
-            ops_count_for_command(cmd)
-        };
-        // Update only when this command actually emits ops (non-emitting commands
-        // like NoOp don't break the greater→branch adjacency).
-        if op_count > 0 {
-            prev_real_was_greater = matches!(cmd.action, CommandType::Greater);
-        }
-        running_op_count += op_count;
-    }
-
-    // Pass 2: emit ops.
+fn expand_commands(commands: Vec<Command>) -> Vec<PietOp> {
     let mut ops = Vec::new();
     let mut prev_was_greater = false;
     for cmd in commands {
@@ -232,15 +155,12 @@ fn expand_commands(commands: Vec<Command>) -> (Vec<PietOp>, Option<BranchInfo>) 
             CommandType::OutNumber  => { ops.push(PietOp::OutNumber);  prev_was_greater = false; },
             CommandType::OutChar    => { ops.push(PietOp::OutChar);    prev_was_greater = false; },
             CommandType::Branch => {
-                if branch_info.is_some() {
-                    // When prev was `greater`, its output is already 0 or 1 — skip not;not.
-                    if !prev_was_greater {
-                        ops.push(PietOp::Not);
-                        ops.push(PietOp::Not);
-                    }
-                    ops.push(PietOp::Pointer);
+                // When prev was `greater`, its output is already 0 or 1 — skip not;not.
+                if !prev_was_greater {
+                    ops.push(PietOp::Not);
+                    ops.push(PietOp::Not);
                 }
-                // Already warned in pass 1 if invalid; silently skip here too.
+                ops.push(PietOp::Pointer);
                 prev_was_greater = false;
             },
             // Non-emitting: leave prev_was_greater unchanged so NoOp etc. don't
@@ -248,41 +168,7 @@ fn expand_commands(commands: Vec<Command>) -> (Vec<PietOp>, Option<BranchInfo>) 
             CommandType::DebugStack | CommandType::OutLabel | CommandType::NoOp => {},
         }
     }
-    (ops, branch_info)
-}
-
-// Returns the name of the instruction that fires when the IP exits the white return
-// corridor and re-enters the loop start block. The re-entry instruction is the color
-// transition from the pointer block to the loop start block.
-fn reentry_instruction_name(blocks: &[PietBlock], loop_target_op_idx: usize, pointer_op_idx: usize) -> &'static str {
-    let ls = blocks[loop_target_op_idx].color_idx;
-    let ptr = blocks[pointer_op_idx].color_idx;
-    let ls_hue = ls % 6;
-    let ls_lightness = ls / 6;
-    let ptr_hue = ptr % 6;
-    let ptr_lightness = ptr / 6;
-    let dh = (ls_hue as i32 - ptr_hue as i32).rem_euclid(6) as u8;
-    let dl = (ls_lightness as i32 - ptr_lightness as i32).rem_euclid(3) as u8;
-    match (dh, dl) {
-        (0, 1) => "push",
-        (0, 2) => "pop",
-        (1, 0) => "add",
-        (1, 1) => "subtract",
-        (1, 2) => "multiply",
-        (2, 0) => "divide",
-        (2, 1) => "mod",
-        (2, 2) => "not",
-        (3, 0) => "greater",
-        (3, 1) => "pointer",
-        (3, 2) => "switch",
-        (4, 0) => "duplicate",
-        (4, 1) => "roll",
-        (4, 2) => "in_number",
-        (5, 0) => "in_char",
-        (5, 1) => "out_number",
-        (5, 2) => "out_char",
-        _ => "unknown",
-    }
+    ops
 }
 
 // Assign colors to each block. Crossing block[i] → block[i+1] executes op[i].
@@ -376,107 +262,13 @@ fn render_gif(blocks: &[PietBlock], codel_size: u32, vertical: bool, output_path
     render_gif_to_writer(blocks, codel_size, vertical, output);
 }
 
-// Renders a 2-row GIF for programs with a single backward branch (loop).
-//
-// Row 0: the main instruction strip (identical to the horizontal layout).
-// Row 1: a white corridor from loop_start_col to the last codel of the pointer block,
-//        black everywhere else.
-//
-// When the pointer block fires with value 1 (branch taken), DP becomes Down. The IP
-// slides down into row 1 (white), hits the image bottom edge and rotates Left, slides
-// left to loop_start_col, hits the black wall and rotates Up, then enters the loop start
-// block in row 0 — executing the re-entry color transition as it does so.
-fn render_loop_gif_to_writer<W: Write>(
-    blocks: &[PietBlock],
-    loop_target_op_idx: usize,
-    pointer_op_idx: usize,
-    codel_size: u32,
-    writer: W,
-) {
-    let total_codels: u32 = blocks.iter().map(|b| b.size).sum();
-    let loop_start_col: u32 = blocks[..loop_target_op_idx].iter().map(|b| b.size).sum();
-    // Corridor extends to the last codel of the pointer block (inclusive).
-    let corridor_end_col: u32 = blocks[..=pointer_op_idx].iter().map(|b| b.size).sum::<u32>() - 1;
-
-    let width_pixels = total_codels * codel_size;
-    let height_pixels = 2 * codel_size;
-    let w = u16::try_from(width_pixels).expect("image too wide: reduce push values or codel size");
-    let h = u16::try_from(height_pixels).expect("codel size too large");
-
-    // Row 0: main strip (each block fills block.size * codel_size pixels wide)
-    let mut row0: Vec<u8> = Vec::with_capacity(width_pixels as usize);
-    for block in blocks {
-        for _ in 0..block.size * codel_size {
-            row0.push(block.color_idx);
-        }
-    }
-
-    // Row 1: white corridor, black walls
-    let mut row1: Vec<u8> = Vec::with_capacity(width_pixels as usize);
-    for codel_col in 0..total_codels {
-        let color = if codel_col >= loop_start_col && codel_col <= corridor_end_col {
-            WHITE_IDX
-        } else {
-            BLACK_IDX
-        };
-        for _ in 0..codel_size {
-            row1.push(color);
-        }
-    }
-
-    // Build full pixel buffer: row0 tiled codel_size times, then row1 tiled codel_size times.
-    let mut px: Vec<u8> = Vec::with_capacity((width_pixels * height_pixels) as usize);
-    for _ in 0..codel_size {
-        px.extend_from_slice(&row0);
-    }
-    for _ in 0..codel_size {
-        px.extend_from_slice(&row1);
-    }
-
-    let mut encoder = Encoder::new(writer, w, h, PALETTE).expect("failed to create GIF encoder");
-    encoder.set_repeat(Repeat::Finite(0)).expect("failed to set repeat");
-    let mut frame = Frame::default();
-    frame.width = w;
-    frame.height = h;
-    frame.buffer = Cow::Owned(px);
-    encoder.write_frame(&frame).expect("failed to write GIF frame");
-}
-
-fn render_loop_gif(
-    blocks: &[PietBlock],
-    loop_target_op_idx: usize,
-    pointer_op_idx: usize,
-    codel_size: u32,
-    output_path: &str,
-) {
-    let output = File::create(output_path)
-        .unwrap_or_else(|e| panic!("cannot create {}: {}", output_path, e));
-    render_loop_gif_to_writer(blocks, loop_target_op_idx, pointer_op_idx, codel_size, output);
-}
-
 #[cfg(test)]
 fn compile_to_gif_bytes(commands: Vec<Command>, codel_size: u32) -> Vec<u8> {
-    let (ops, _branch_info) = expand_commands(commands);
+    let ops = expand_commands(commands);
     let blocks = assign_colors(&ops);
     let mut buf = Vec::new();
     render_gif_to_writer(&blocks, codel_size, false, &mut buf);
     buf
-}
-
-#[cfg(test)]
-fn compile_to_loop_gif_bytes(commands: Vec<Command>, codel_size: u32) -> Vec<u8> {
-    let (ops, branch_info) = expand_commands(commands);
-    let bi = branch_info.expect("compile_to_loop_gif_bytes: no branch found");
-    let blocks = assign_colors(&ops);
-    let mut buf = Vec::new();
-    render_loop_gif_to_writer(&blocks, bi.loop_target_op_idx, bi.pointer_op_idx, codel_size, &mut buf);
-    buf
-}
-
-#[cfg(test)]
-fn compile_fixture_loop(name: &str) -> Vec<u8> {
-    let commands = read_file(&format!("tests/fixtures/pietc/{}.txt", name));
-    compile_to_loop_gif_bytes(commands, 1)
 }
 
 fn print_usage(prog: &str) {
@@ -530,42 +322,29 @@ mod tests {
     fn test_simple_loop_structure() {
         // Validates branch compilation without depending on a golden GIF.
         let commands = read_file("tests/fixtures/pietc/simple_loop.txt");
-        let (ops, branch_info) = expand_commands(commands);
-        let bi = branch_info.expect("simple_loop.txt must contain a branch");
+        let ops = expand_commands(commands);
 
         // push(3),dup,out_number,push(1),subtract,dup,not,not,pointer,pop = 10 ops
         assert_eq!(ops.len(), 10);
-        assert_eq!(bi.loop_target_op_idx, 0);
-        assert_eq!(bi.pointer_op_idx, 8);
         assert!(matches!(ops[6], PietOp::Not));
         assert!(matches!(ops[7], PietOp::Not));
         assert!(matches!(ops[8], PietOp::Pointer));
-
-        // 2-row image at codel_size=1: height header bytes at GIF offset 8-9 = [2, 0]
-        let bytes = compile_to_loop_gif_bytes(
-            read_file("tests/fixtures/pietc/simple_loop.txt"), 1
-        );
-        assert_eq!(&bytes[0..6], b"GIF89a");
-        let height = u16::from_le_bytes([bytes[8], bytes[9]]);
-        assert_eq!(height, 2);
     }
 
     #[test]
     fn test_simple_loop_gif() {
-        assert_eq!(compile_fixture_loop("simple_loop"), expected_bytes("simple_loop"));
+        assert_eq!(compile_fixture("simple_loop"), expected_bytes("simple_loop"));
     }
 
     #[test]
     fn test_branch_after_greater_skips_not_not() {
         // When `branch` immediately follows `greater`, not;not is omitted.
         let commands = read_file("tests/fixtures/pietc/greater_loop.txt");
-        let (ops, branch_info) = expand_commands(commands);
-        let bi = branch_info.expect("greater_loop.txt must contain a branch");
+        let ops = expand_commands(commands);
 
         // push(3),dup,out_number,push(1),subtract,dup,push(1),not,greater,pointer,pop = 11 ops
         // (push 0 → push 1; not; no not;not before pointer since prev was greater)
         assert_eq!(ops.len(), 11);
-        assert_eq!(bi.pointer_op_idx, 9);
         assert!(matches!(ops[8], PietOp::Greater));
         assert!(matches!(ops[9], PietOp::Pointer));
     }
@@ -643,24 +422,11 @@ fn main() {
         all_commands.into_iter().skip(start).collect()
     };
 
-    let (ops, branch_info) = expand_commands(commands);
+    let ops = expand_commands(commands);
     let blocks = assign_colors(&ops);
     let total_codels: u32 = blocks.iter().map(|b| b.size).sum();
 
     println!("Compiling {} ops → {} codels → {}", ops.len(), total_codels, output_path);
-    match branch_info {
-        None => {
-            render_gif(&blocks, codel_size, vertical, &output_path);
-        }
-        Some(ref bi) => {
-            if vertical {
-                eprintln!("Warning: --vertical is ignored for loop programs; using corridor layout");
-            }
-            let instr = reentry_instruction_name(&blocks, bi.loop_target_op_idx, bi.pointer_op_idx);
-            eprintln!("Note: loop re-entry fires `{}` when IP exits the white corridor.", instr);
-            eprintln!("      Design your loop body so this is harmless, or add a compensating op.");
-            render_loop_gif(&blocks, bi.loop_target_op_idx, bi.pointer_op_idx, codel_size, &output_path);
-        }
-    }
+    render_gif(&blocks, codel_size, vertical, &output_path);
     println!("Wrote {}", output_path);
 }
