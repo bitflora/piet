@@ -80,6 +80,7 @@ enum PietOp {
     InChar,
     OutNumber,
     OutChar,
+    White,
 }
 
 // Returns (hue_delta, lightness_delta) for each command per the Piet spec table.
@@ -102,6 +103,7 @@ fn command_delta(op: &PietOp) -> (u8, u8) {
         PietOp::InChar     => (5, 0),
         PietOp::OutNumber  => (5, 1),
         PietOp::OutChar    => (5, 2),
+        PietOp::White      => unreachable!("White is handled before command_delta"),
     }
 }
 
@@ -163,6 +165,7 @@ fn expand_commands(commands: Vec<Command>) -> Vec<PietOp> {
                 ops.push(PietOp::Pointer);
                 prev_was_greater = false;
             },
+            CommandType::ResetColor => { ops.push(PietOp::White); prev_was_greater = false; },
             // Non-emitting: leave prev_was_greater unchanged so NoOp etc. don't
             // break a greater→branch adjacency.
             CommandType::DebugStack | CommandType::OutLabel | CommandType::NoOp => {},
@@ -182,6 +185,12 @@ fn assign_colors(ops: &[PietOp]) -> Vec<PietBlock> {
     let mut lightness: u8 = 0;
 
     for op in ops {
+        if matches!(op, PietOp::White) {
+            blocks.push(PietBlock { color_idx: WHITE_IDX, size: 1 });
+            hue = 0;
+            lightness = 0;
+            continue;
+        }
         let size = match op {
             PietOp::Push(n) => *n,
             _ => 1,
@@ -334,6 +343,23 @@ mod tests {
     #[test]
     fn test_simple_loop_gif() {
         assert_eq!(compile_fixture("simple_loop"), expected_bytes("simple_loop"));
+    }
+
+    #[test]
+    fn test_reset_color_restarts_color_sequence() {
+        // reset_color emits white then resets hue/lightness to 0 (light red).
+        // Ops: [Add, White, Push(3)]
+        let ops = vec![PietOp::Add, PietOp::White, PietOp::Push(3)];
+        let blocks = assign_colors(&ops);
+
+        // Expected layout: [Add-from, white, Push(3)-from, FINAL_TO, black]
+        assert_eq!(blocks.len(), 5);
+        assert_eq!(blocks[0].color_idx, color_index(0, 0)); // light red (initial)
+        assert_eq!(blocks[1].color_idx, WHITE_IDX);
+        assert_eq!(blocks[2].color_idx, color_index(0, 0)); // light red (reset)
+        assert_eq!(blocks[2].size, 3);                       // Push(3) encodes value in size
+        assert_eq!(blocks[3].color_idx, color_index(0, 1)); // normal red (after Push delta dl=1)
+        assert_eq!(blocks[4].color_idx, BLACK_IDX);
     }
 
     #[test]

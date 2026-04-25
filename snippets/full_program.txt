@@ -43,7 +43,7 @@ push 7
         #push 32
         #out_char # print space
 
-
+reset_color
 
 # assumes you have already pushed x/a then y/b; ie: y/b should be on top of the stack
 
@@ -222,7 +222,7 @@ push 32
 +
 out_char
 
-
+reset_color
 
 
         # end loop x

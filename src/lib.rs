@@ -41,6 +41,7 @@ pub enum CommandType {
     DebugStack,
     OutLabel,
     NoOp,
+    ResetColor,
 }
 
 #[derive(Clone)]
@@ -100,6 +101,7 @@ impl Command {
                     "debug_stack" => CommandType::DebugStack,
                     "out_label" => CommandType::OutLabel,
                     "noop" | "#" => CommandType::NoOp,
+                    "reset_color" => CommandType::ResetColor,
                     _ => panic!("bad command: {}", split[0])
                 }
             },

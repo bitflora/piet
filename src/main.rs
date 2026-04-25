@@ -189,7 +189,7 @@ fn run_code(commands:Vec<Command>, debug: bool, writer: &mut impl Write) -> (Vec
                 write!(writer, "{}", labels.pop().unwrap()).unwrap();
                 stack.pop();
             },
-            CommandType::NoOp => {
+            CommandType::NoOp | CommandType::ResetColor => {
                 // Do nothing
             }
         }
