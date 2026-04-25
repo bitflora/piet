@@ -119,21 +119,17 @@ filename = "npietedit-filename.ppm"
 # Connected-cell count (iterative BFS — avoids Python recursion limit)
 # ---------------------------------------------------------------------------
 
-def count_col():
-    global cur_x, cur_y, cur_idx, c_maxx, c_maxy
-    if cur_idx >= 18:
+def count_col_at(x, y):
+    global c_maxx, c_maxy
+    target = cells.get((x, y))
+    if target is None or target >= 18:
         return 0
-    target = cur_idx
     visited = set()
-    queue = collections.deque()
-    start = (cur_x, cur_y)
-    if cells.get(start) != target:
-        return 0
-    queue.append(start)
-    visited.add(start)
+    queue = collections.deque([(x, y)])
+    visited.add((x, y))
     while queue:
-        x, y = queue.popleft()
-        for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+        cx, cy = queue.popleft()
+        for nx, ny in ((cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1)):
             if (nx, ny) in visited:
                 continue
             if nx < 0 or nx >= c_maxx or ny < 0 or ny >= c_maxy:
@@ -144,6 +140,15 @@ def count_col():
         if len(visited) > 990:
             return "???"
     return len(visited)
+
+
+def count_col():
+    global cur_x, cur_y, cur_idx
+    if cur_idx >= 18:
+        return 0
+    if cells.get((cur_x, cur_y)) != cur_idx:
+        return 0
+    return count_col_at(cur_x, cur_y)
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +209,7 @@ def motion_canvas(event):
     if x < 0 or y < 0 or x >= c_maxx or y >= c_maxy:
         return
     draw_pos(x, y)
+    draw_conn(count_col_at(x, y))
 
 
 # ---------------------------------------------------------------------------
@@ -273,9 +279,10 @@ def redraw_cmd_canvas():
         ncy = ((cur_idx // 6) + cmd_light) % 3
         result_idx = ncx + 6 * ncy
         fill_col = idx2col(result_idx)
+        text_col = "white" if result_idx in (10, 16) else "black"
         cmd_canvas.create_rectangle(cx, cy, cx + 54, cy + c_zc - 2,
                                     fill=fill_col, outline="black")
-        cmd_canvas.create_text(cx + 2, cy + 2, anchor="nw", text=COMMANDS[i])
+        cmd_canvas.create_text(cx + 2, cy + 2, anchor="nw", text=COMMANDS[i], fill=text_col)
 
 
 # ---------------------------------------------------------------------------
