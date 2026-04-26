@@ -64,7 +64,7 @@ cargo test -- --nocapture  # Run tests with stdout visible
 
 The interpreter lives in `src/main.rs`. The compiler is in src/bin/pietc.rs.
 
-npietedit/ contains npietedit.py, a UI for editting piet programs, translated from the file npietedit-0.9d.tcl.
+npietedit/ contains npietedit.py, an IDE for editting piet programs, translated from the file npietedit-0.9d.tcl.
 
 ## Pietxt
 

@@ -177,6 +177,59 @@ def draw_pos(x, y):
         text="px={} py={}, x={} y={}".format(cur_x, cur_y, x, y), tags="pos_info")
 
 
+def draw_transitions(x, y):
+    info_canvas.delete("transitions")
+    cur_idx = cells.get((x, y), 19)
+    if cur_idx >= 18:
+        return
+
+    # BFS to find all cells in the connected color block
+    block = set()
+    queue = collections.deque([(x, y)])
+    block.add((x, y))
+    while queue:
+        cx, cy = queue.popleft()
+        for nx, ny in ((cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1)):
+            if (nx, ny) in block:
+                continue
+            if not (0 <= nx < c_maxx and 0 <= ny < c_maxy):
+                continue
+            if cells.get((nx, ny)) == cur_idx:
+                block.add((nx, ny))
+                queue.append((nx, ny))
+
+    # Collect unique adjacent colors touching the block boundary
+    seen = set()
+    adj_colors = []
+    for bx, by in block:
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = bx + dx, by + dy
+            if (nx, ny) in block:
+                continue
+            if not (0 <= nx < c_maxx and 0 <= ny < c_maxy):
+                continue
+            adj_idx = cells.get((nx, ny), 19)
+            if adj_idx >= 18 or adj_idx == cur_idx or adj_idx in seen:
+                continue
+            seen.add(adj_idx)
+            adj_colors.append(adj_idx)
+
+    row_h = 22
+    sw = 20
+    for row, adj_idx in enumerate(adj_colors):
+        dh = (cur_idx % 6 - adj_idx % 6) % 6
+        dl = (cur_idx // 6 - adj_idx // 6) % 3
+        cmd = COMMANDS[dl * 6 + dh]
+
+        cy = 2 + row * row_h
+        info_canvas.create_rectangle(2, cy, 2 + sw, cy + sw,
+            fill=idx2col(adj_idx), outline="black", tags="transitions")
+        info_canvas.create_text(26, cy + sw // 2, text="→", anchor="w", tags="transitions")
+        info_canvas.create_rectangle(40, cy, 40 + sw, cy + sw,
+            fill=idx2col(cur_idx), outline="black", tags="transitions")
+        info_canvas.create_text(64, cy + sw // 2, text=": " + cmd, anchor="w", tags="transitions")
+
+
 # ---------------------------------------------------------------------------
 # Paint canvas event handlers
 # ---------------------------------------------------------------------------
@@ -215,6 +268,7 @@ def motion_canvas(event):
         return
     draw_pos(x, y)
     draw_conn(count_col_at(x, y))
+    draw_transitions(x, y)
 
 
 # ---------------------------------------------------------------------------
@@ -479,17 +533,21 @@ cpick_y = 1
 
 cpick_canvas.bind("<Button-1>", cpick)
 
-# -- Command reference canvas ------------------------------------------------
-cmd_frame = tk.Frame(root)
-cmd_frame.pack(side="top", fill="x")
+# -- Command reference + transition info row ---------------------------------
+cmd_info_frame = tk.Frame(root)
+cmd_info_frame.pack(side="top", fill="x")
 
-cmd_canvas = tk.Canvas(cmd_frame, bg="white",
-    width=c_width, height=c_zc * 3 + 2)
-cmd_canvas.pack(fill="both")
+_row_h = max(c_zc * 3 + 2, 4 * 22 + 4)
+cmd_canvas = tk.Canvas(cmd_info_frame, bg="white",
+    width=6 * 56 + 4, height=_row_h)
+cmd_canvas.pack(side="left")
 
 redraw_cmd_canvas()
 
 cmd_canvas.bind("<Button-1>", cmd_click)
+
+info_canvas = tk.Canvas(cmd_info_frame, bg="white", height=_row_h)
+info_canvas.pack(side="left", fill="both", expand=True)
 
 # -- Paint canvas ------------------------------------------------------------
 paint_frame = tk.Frame(root)
