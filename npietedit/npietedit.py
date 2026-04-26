@@ -227,7 +227,8 @@ def draw_transitions(x, y):
         info_canvas.create_text(26, cy + sw // 2, text="→", anchor="w", tags="transitions")
         info_canvas.create_rectangle(40, cy, 40 + sw, cy + sw,
             fill=idx2col(cur_idx), outline="black", tags="transitions")
-        info_canvas.create_text(64, cy + sw // 2, text=": " + cmd, anchor="w", tags="transitions")
+        label = ": push ({})".format(len(block)) if cmd == "push" else ": " + cmd
+        info_canvas.create_text(64, cy + sw // 2, text=label, anchor="w", tags="transitions")
 
 
 # ---------------------------------------------------------------------------
