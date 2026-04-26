@@ -75,18 +75,22 @@ def col2idx(r, g, b):
 # Drawing helpers
 # ---------------------------------------------------------------------------
 
-def paint_rect(canvas, x, y, idx, zoom):
-    px = 2 + x * zoom
-    py = 2 + y * zoom
+def paint_rect(canvas, x, y, idx, zpx, zpy=None):
+    if zpy is None:
+        zpy = zpx
+    px = 2 + x * zpx
+    py = 2 + y * zpy
     col = idx2col(idx)
-    canvas.create_rectangle(px, py, px + zoom - 2, py + zoom - 2, fill=col, outline=col)
+    canvas.create_rectangle(px, py, px + zpx - 2, py + zpy - 2, fill=col, outline=col)
 
 
-def paint_border(canvas, x, y, flag, zoom):
-    px = 1 + x * zoom
-    py = 1 + y * zoom
+def paint_border(canvas, x, y, flag, zpx, zpy=None):
+    if zpy is None:
+        zpy = zpx
+    px = 1 + x * zpx
+    py = 1 + y * zpy
     outline = "#000000" if flag else "#ffffff"
-    canvas.create_rectangle(px, py, px + zoom, py + zoom, fill="", outline=outline)
+    canvas.create_rectangle(px, py, px + zpx, py + zpy, fill="", outline=outline)
 
 
 # ---------------------------------------------------------------------------
@@ -96,9 +100,10 @@ def paint_border(canvas, x, y, flag, zoom):
 c_maxx = 48
 c_maxy = 32
 c_zc = 20          # palette zoom (fixed)
-c_zp = 20          # paint canvas zoom (adjusts on resize)
-c_width  = c_zp * c_maxx
-c_height = c_zp * c_maxy
+c_zpx = 20         # paint canvas x-zoom (adjusts on resize)
+c_zpy = 20         # paint canvas y-zoom (adjusts on resize)
+c_width  = c_zpx * c_maxx
+c_height = c_zpy * c_maxy
 
 cells = {}          # (x, y) -> color index
 for _y in range(c_maxy):
@@ -178,8 +183,8 @@ def draw_pos(x, y):
 
 def click_canvas(event, button):
     global cur_x, cur_y, cur_idx
-    x = event.x // c_zp
-    y = event.y // c_zp
+    x = event.x // c_zpx
+    y = event.y // c_zpy
     if x < 0 or y < 0 or x >= c_maxx or y >= c_maxy:
         return
 
@@ -190,11 +195,11 @@ def click_canvas(event, button):
     else:
         # left click: paint cell
         cells[(x, y)] = cur_idx
-        paint_rect(paint_canvas, x, y, cur_idx, c_zp)
+        paint_rect(paint_canvas, x, y, cur_idx, c_zpx, c_zpy)
 
     if cur_x >= 0 and cur_y >= 0:
-        paint_border(paint_canvas, cur_x, cur_y, 0, c_zp)
-    paint_border(paint_canvas, x, y, 1, c_zp)
+        paint_border(paint_canvas, cur_x, cur_y, 0, c_zpx, c_zpy)
+    paint_border(paint_canvas, x, y, 1, c_zpx, c_zpy)
 
     cur_x = x
     cur_y = y
@@ -204,8 +209,8 @@ def click_canvas(event, button):
 
 
 def motion_canvas(event):
-    x = event.x // c_zp
-    y = event.y // c_zp
+    x = event.x // c_zpx
+    y = event.y // c_zpy
     if x < 0 or y < 0 or x >= c_maxx or y >= c_maxy:
         return
     draw_pos(x, y)
@@ -344,7 +349,7 @@ def load_cells(fname):
     global c_maxx, c_maxy
     result = load_p3_cells(fname)
     if result:
-        cells_resize(result[0], result[1])
+        cells_resize(result[0], result[1], recalc_zoom=True)
         return
 
     if HAS_PIL:
@@ -355,7 +360,7 @@ def load_cells(fname):
                 for x in range(w):
                     r, g, b = img.getpixel((x, y))
                     cells[(x, y)] = col2idx(r, g, b)
-            cells_resize(w, h)
+            cells_resize(w, h, recalc_zoom=True)
             return
         except Exception as e:
             messagebox.showerror("Load error", "Cannot read {}: {}".format(fname, e))
@@ -397,25 +402,38 @@ def cells_enlarge(delta):
     cells_resize(c_maxx + delta, c_maxy + delta)
 
 
-def cells_resize(width, height):
-    global c_maxx, c_maxy, c_zp
+def cells_enlarge_x(delta):
+    if delta < 0 and c_maxx <= 4:
+        return
+    cells_resize(c_maxx + delta, c_maxy)
+
+
+def cells_enlarge_y(delta):
+    if delta < 0 and c_maxy <= 4:
+        return
+    cells_resize(c_maxx, c_maxy + delta)
+
+
+def cells_resize(width, height, recalc_zoom=False):
+    global c_maxx, c_maxy, c_zpx, c_zpy, c_width, c_height
     c_maxx = width
     c_maxy = height
 
-    size = max(c_maxx, c_maxy)
-    if size > 0:
-        c_zp = c_width // size
-        if c_zp < 8:
-            c_zp = 8
-    if c_zp > 20:
-        c_zp = 20
+    if recalc_zoom:
+        _MAX = 960
+        c_zpx = max(8, min(20, _MAX // c_maxx)) if c_maxx > 0 else 20
+        c_zpy = max(8, min(20, _MAX // c_maxy)) if c_maxy > 0 else 20
+
+    c_width  = c_zpx * c_maxx
+    c_height = c_zpy * c_maxy
+    paint_canvas.config(width=c_width + 1, height=c_height + 1)
 
     paint_canvas.create_rectangle(0, 0, c_width + 1, c_height + 1, fill="white", outline="")
     for y in range(c_maxy):
         for x in range(c_maxx):
             idx = cells.get((x, y), 19)
             cells[(x, y)] = idx
-            paint_rect(paint_canvas, x, y, idx, c_zp)
+            paint_rect(paint_canvas, x, y, idx, c_zpx, c_zpy)
 
 
 # ---------------------------------------------------------------------------
@@ -433,8 +451,12 @@ tk.Label(toolbar, text=VERSION).pack(side="left")
 tk.Button(toolbar, text="Quit",    command=root.quit).pack(side="left")
 tk.Button(toolbar, text="Save",    command=on_save).pack(side="left")
 tk.Button(toolbar, text="Load",    command=on_load).pack(side="left")
-tk.Button(toolbar, text="Shrink",  command=lambda: cells_enlarge(-1)).pack(side="left")
-tk.Button(toolbar, text="Enlarge", command=lambda: cells_enlarge(+1)).pack(side="left")
+tk.Button(toolbar, text="Shrink",  command=lambda: cells_enlarge(-5)).pack(side="left")
+tk.Button(toolbar, text="Enlarge", command=lambda: cells_enlarge(+5)).pack(side="left")
+tk.Button(toolbar, text="Wider",   command=lambda: cells_enlarge_x(+5)).pack(side="left")
+tk.Button(toolbar, text="Narrower",command=lambda: cells_enlarge_x(-5)).pack(side="left")
+tk.Button(toolbar, text="Taller",  command=lambda: cells_enlarge_y(+5)).pack(side="left")
+tk.Button(toolbar, text="Shorter", command=lambda: cells_enlarge_y(-5)).pack(side="left")
 
 # -- Color picker canvas -----------------------------------------------------
 cpick_frame = tk.Frame(root)
@@ -481,7 +503,7 @@ paint_canvas.pack(fill="both")
 # Initial paint
 for _y in range(c_maxy):
     for _x in range(c_maxx):
-        paint_rect(paint_canvas, _x, _y, 19, c_zp)
+        paint_rect(paint_canvas, _x, _y, 19, c_zpx, c_zpy)
 
 paint_canvas.bind("<Motion>",          motion_canvas)
 paint_canvas.bind("<Button-1>",        lambda e: click_canvas(e, 1))
