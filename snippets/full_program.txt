@@ -177,7 +177,7 @@ roll # pull loop_counter_copy
 
 
 # stack: loop_counter_copy, a_acc, b_acc, loop_counter, b, a
-
+# implicit `not not` here to rotate pointer
 branch 57 # loop 4 times
 
 # stack: a_acc, b_acc, loop_counter, b, a

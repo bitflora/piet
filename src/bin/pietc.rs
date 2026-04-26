@@ -183,14 +183,20 @@ fn assign_colors(ops: &[PietOp]) -> Vec<PietBlock> {
     let mut blocks = Vec::new();
     let mut hue: u8 = 0;       // start: light red
     let mut lightness: u8 = 0;
+    let mut ends_with_white = false;
 
     for op in ops {
         if matches!(op, PietOp::White) {
+            // Emit the destination block of the previous op BEFORE the white separator,
+            // so the correct command transition occurs before the color reset.
+            blocks.push(PietBlock { color_idx: color_index(hue, lightness), size: 1 });
             blocks.push(PietBlock { color_idx: WHITE_IDX, size: 1 });
             hue = 0;
             lightness = 0;
+            ends_with_white = true;
             continue;
         }
+        ends_with_white = false;
         let size = match op {
             PietOp::Push(n) => *n,
             _ => 1,
@@ -201,8 +207,10 @@ fn assign_colors(ops: &[PietOp]) -> Vec<PietBlock> {
         lightness = (lightness + dl) % 3;
     }
 
-    // Final colored block (IP enters here after last command executes).
-    blocks.push(PietBlock { color_idx: color_index(hue, lightness), size: 1 });
+    if !ends_with_white {
+        // Final colored block (IP enters here after last command executes).
+        blocks.push(PietBlock { color_idx: color_index(hue, lightness), size: 1 });
+    }
     // Black terminator — IP cannot enter, triggers program termination.
     blocks.push(PietBlock { color_idx: BLACK_IDX, size: 1 });
 
@@ -346,20 +354,23 @@ mod tests {
     }
 
     #[test]
-    fn test_reset_color_restarts_color_sequence() {
-        // reset_color emits white then resets hue/lightness to 0 (light red).
-        // Ops: [Add, White, Push(3)]
-        let ops = vec![PietOp::Add, PietOp::White, PietOp::Push(3)];
+    fn test_reset_color_dest_before_white() {
+        // reset_color emits the destination of the preceding op before the white block,
+        // then white, then resets hue/lightness to 0 for the next section.
+        // When white is the last op, no final colored block is added — WHITE→BLACK terminates.
+        //
+        // Ops: [Add, White]
+        // Add delta=(1,0): src=light_red(0,0), dest=light_yellow(1,0).
+        // White: emits light_yellow dest block, then WHITE. No final colored block.
+        let ops = vec![PietOp::Add, PietOp::White];
         let blocks = assign_colors(&ops);
 
-        // Expected layout: [Add-from, white, Push(3)-from, FINAL_TO, black]
-        assert_eq!(blocks.len(), 5);
-        assert_eq!(blocks[0].color_idx, color_index(0, 0)); // light red (initial)
-        assert_eq!(blocks[1].color_idx, WHITE_IDX);
-        assert_eq!(blocks[2].color_idx, color_index(0, 0)); // light red (reset)
-        assert_eq!(blocks[2].size, 3);                       // Push(3) encodes value in size
-        assert_eq!(blocks[3].color_idx, color_index(0, 1)); // normal red (after Push delta dl=1)
-        assert_eq!(blocks[4].color_idx, BLACK_IDX);
+        // Layout: [Add-from(light_red), Add-dest(light_yellow), white, black]
+        assert_eq!(blocks.len(), 4);
+        assert_eq!(blocks[0].color_idx, color_index(0, 0)); // light red (Add source)
+        assert_eq!(blocks[1].color_idx, color_index(1, 0)); // light yellow (Add destination, before white)
+        assert_eq!(blocks[2].color_idx, WHITE_IDX);
+        assert_eq!(blocks[3].color_idx, BLACK_IDX);
     }
 
     #[test]

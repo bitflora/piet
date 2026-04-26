@@ -1,0 +1,5 @@
+push 32
++
+out_char
+
+reset_color
