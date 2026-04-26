@@ -316,7 +316,7 @@ def load_p3_cells(fname):
     try:
         with open(fname, "r") as fp:
             content = fp.read()
-    except OSError:
+    except (OSError, UnicodeDecodeError, ValueError):
         return None
 
     tokens = []
@@ -367,7 +367,7 @@ def load_cells(fname):
             return
 
     messagebox.showerror("Load error",
-        "Cannot read {}.\nInstall Pillow for non-P3 PPM support.".format(fname))
+        "Cannot read {}.\nInstall Pillow (pip install Pillow) for GIF and non-P3 PPM support.".format(fname))
 
 
 def on_save():
@@ -385,7 +385,7 @@ def on_load():
     global filename
     fname = filedialog.askopenfilename(
         initialfile=filename,
-        filetypes=[("PPM files", "*.ppm"), ("All files", "*")],
+        filetypes=[("Piet files", "*.ppm *.gif"), ("PPM files", "*.ppm"), ("GIF files", "*.gif"), ("All files", "*")],
     )
     if fname:
         filename = fname
