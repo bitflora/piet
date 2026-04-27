@@ -198,25 +198,34 @@ def draw_transitions(x, y):
                 block.add((nx, ny))
                 queue.append((nx, ny))
 
-    # Collect unique adjacent colors touching the block boundary
+    # dx/dy → arrow showing the direction of DP travel into this block
+    _dir_arrow = {(-1, 0): "→", (1, 0): "←", (0, -1): "↓", (0, 1): "↑"}
+    _dir_order = {"→": 0, "←": 1, "↓": 2, "↑": 3}
+
+    # Collect unique (adj_idx, arrow) pairs touching the block boundary
     seen = set()
-    adj_colors = []
+    adj_entries = []
     for bx, by in block:
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        for (dx, dy), arrow in _dir_arrow.items():
             nx, ny = bx + dx, by + dy
             if (nx, ny) in block:
                 continue
             if not (0 <= nx < c_maxx and 0 <= ny < c_maxy):
                 continue
             adj_idx = cells.get((nx, ny), 19)
-            if adj_idx >= 18 or adj_idx == cur_idx or adj_idx in seen:
+            if adj_idx >= 18 or adj_idx == cur_idx:
                 continue
-            seen.add(adj_idx)
-            adj_colors.append(adj_idx)
+            key = (adj_idx, arrow)
+            if key in seen:
+                continue
+            seen.add(key)
+            adj_entries.append((arrow, adj_idx, count_col_at(nx, ny)))
+
+    adj_entries.sort(key=lambda e: _dir_order[e[0]])
 
     row_h = 22
     sw = 20
-    for row, adj_idx in enumerate(adj_colors):
+    for row, (arrow, adj_idx, adj_size) in enumerate(adj_entries):
         dh = (cur_idx % 6 - adj_idx % 6) % 6
         dl = (cur_idx // 6 - adj_idx // 6) % 3
         cmd = COMMANDS[dl * 6 + dh]
@@ -224,10 +233,10 @@ def draw_transitions(x, y):
         cy = 2 + row * row_h
         info_canvas.create_rectangle(2, cy, 2 + sw, cy + sw,
             fill=idx2col(adj_idx), outline="black", tags="transitions")
-        info_canvas.create_text(26, cy + sw // 2, text="→", anchor="w", tags="transitions")
+        info_canvas.create_text(26, cy + sw // 2, text=arrow, anchor="w", tags="transitions")
         info_canvas.create_rectangle(40, cy, 40 + sw, cy + sw,
             fill=idx2col(cur_idx), outline="black", tags="transitions")
-        label = ": push ({})".format(len(block)) if cmd == "push" else ": " + cmd
+        label = ": push ({})".format(adj_size) if cmd == "push" else ": " + cmd
         info_canvas.create_text(64, cy + sw // 2, text=label, anchor="w", tags="transitions")
 
 
