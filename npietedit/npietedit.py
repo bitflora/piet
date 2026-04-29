@@ -255,6 +255,7 @@ def click_canvas(event, button):
         # right/middle click: pick color from cell
         cur_idx = cells.get((x, y), 19)
         pick_color(cur_idx)
+        redraw_cmd_canvas()
     else:
         # left click: paint cell
         cells[(x, y)] = cur_idx
