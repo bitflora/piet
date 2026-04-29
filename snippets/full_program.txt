@@ -214,7 +214,9 @@ pop
 pop
 pop
 
-push 200 cutoff
+push 20
+push 10
+* cutoff
 greater comp
 push 10
 *
