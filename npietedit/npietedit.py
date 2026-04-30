@@ -484,21 +484,55 @@ def cells_resize(width, height, recalc_zoom=False):
     c_maxx = width
     c_maxy = height
 
-    if recalc_zoom:
+    w = paint_canvas.winfo_width()
+    h = paint_canvas.winfo_height()
+    if w > 1 and h > 1 and c_maxx > 0 and c_maxy > 0:
+        c_zpx = max(1, w // c_maxx)
+        c_zpy = max(1, h // c_maxy)
+    elif recalc_zoom:
         _MAX = 960
         c_zpx = max(8, min(20, _MAX // c_maxx)) if c_maxx > 0 else 20
         c_zpy = max(8, min(20, _MAX // c_maxy)) if c_maxy > 0 else 20
 
     c_width  = c_zpx * c_maxx
     c_height = c_zpy * c_maxy
-    paint_canvas.config(width=c_width + 1, height=c_height + 1)
 
-    paint_canvas.create_rectangle(0, 0, c_width + 1, c_height + 1, fill="white", outline="")
+    paint_canvas.delete("all")
     for y in range(c_maxy):
         for x in range(c_maxx):
             idx = cells.get((x, y), 19)
             cells[(x, y)] = idx
             paint_rect(paint_canvas, x, y, idx, c_zpx, c_zpy)
+    paint_border(paint_canvas, cur_x, cur_y, 1, c_zpx, c_zpy)
+
+
+_resize_job = None
+
+def on_paint_canvas_configure(event):
+    global _resize_job
+    if _resize_job is not None:
+        root.after_cancel(_resize_job)
+    _resize_job = root.after(50, _do_zoom_redraw)
+
+def _do_zoom_redraw():
+    global c_zpx, c_zpy, c_width, c_height
+    w = paint_canvas.winfo_width()
+    h = paint_canvas.winfo_height()
+    if w <= 1 or h <= 1 or c_maxx == 0 or c_maxy == 0:
+        return
+    new_zpx = max(1, w // c_maxx)
+    new_zpy = max(1, h // c_maxy)
+    if new_zpx == c_zpx and new_zpy == c_zpy:
+        return
+    c_zpx = new_zpx
+    c_zpy = new_zpy
+    c_width = c_zpx * c_maxx
+    c_height = c_zpy * c_maxy
+    paint_canvas.delete("all")
+    for y in range(c_maxy):
+        for x in range(c_maxx):
+            paint_rect(paint_canvas, x, y, cells.get((x, y), 19), c_zpx, c_zpy)
+    paint_border(paint_canvas, cur_x, cur_y, 1, c_zpx, c_zpy)
 
 
 # ---------------------------------------------------------------------------
@@ -562,12 +596,12 @@ info_canvas.pack(side="left", fill="both", expand=True)
 
 # -- Paint canvas ------------------------------------------------------------
 paint_frame = tk.Frame(root)
-paint_frame.pack(side="left", fill="both")
+paint_frame.pack(side="left", fill="both", expand=True)
 
 paint_canvas = tk.Canvas(paint_frame, bg="white",
     width=c_width + 1, height=c_height + 1)
 paint_canvas.create_rectangle(0, 0, c_width + 1, c_height + 1, fill="white", outline="")
-paint_canvas.pack(fill="both")
+paint_canvas.pack(fill="both", expand=True)
 
 # Initial paint
 for _y in range(c_maxy):
@@ -579,6 +613,7 @@ paint_canvas.bind("<Button-1>",        lambda e: click_canvas(e, 1))
 paint_canvas.bind("<Button-2>",        lambda e: click_canvas(e, 2))  # middle (X11 / Mac)
 paint_canvas.bind("<Button-3>",        lambda e: click_canvas(e, 3))  # right (Windows)
 paint_canvas.bind("<B1-Motion>",       lambda e: click_canvas(e, 1))
+paint_canvas.bind("<Configure>",       on_paint_canvas_configure)
 
 # ---------------------------------------------------------------------------
 # Entry point
