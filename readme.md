@@ -1,48 +1,59 @@
-This is a text-based version of the Piet language (see https://www.dangermouse.net/esoteric/piet.html). Its purpose is to more easily prototype your Piet program before converting it to a beautiful image.
+LLMs as Yak-shavers
+===================
 
-The following describes a stack-based language. Each line of the program contains a single instruction, optionally followed by a space then a number, which would the value passed to the command. '#' begins a comment; everything from there to the end of the line is ignored.
+![The Program](pretty.png)
 
-These are the valid commands:
-- push x: Pushes x on to the stack.
-- pop: Pops the top value off the stack and discards it.
-- add: Pops the top two values off the stack, adds them, and pushes the result back on the stack.
-- subtract: Pops the top two values off the stack, calculates the second top value minus the top value, and pushes the result back on the stack.
-- multiply: Pops the top two values off the stack, multiplies them, and pushes the result back on the stack.
-- divide: Pops the top two values off the stack, calculates the integer division of the second top value by the top value, and pushes the result back on the stack. If a divide by zero occurs, it is handled as an implementation-dependent error, though simply ignoring the command is recommended.
-- mod: Pops the top two values off the stack, calculates the second top value modulo the top value, and pushes the result back on the stack. The result has the same sign as the divisor (the top value). If the top value is zero, this is a divide by zero error, which is handled as an implementation-dependent error, though simply ignoring the command is recommended. (See note below.)
-- not: Replaces the top value of the stack with 0 if it is non-zero, and 1 if it is zero.
-- greater: Pops the top two values off the stack, and pushes 1 on to the stack if the second top value is greater than the top value, and pushes 0 if it is not greater.
-- duplicate: Pushes a copy of the top value on the stack on to the stack.
-- roll: Pops the top two values off the stack and "rolls" the remaining stack entries to a depth equal to the second value popped, by a number of rolls equal to the first value popped. A single roll to depth n is defined as burying the top value on the stack n deep and bringing all values above it up by 1 place. A negative number of rolls rolls in the opposite direction. A negative depth is an error and the command is ignored. If a roll is greater than an implementation-dependent maximum stack depth, it is handled as an implementation-dependent error, though simply ignoring the command is recommended. To get an entry `X` deep in the stack (ignoring the parameters to `roll` itself), push `X` and then push `X-1`, then roll.
-- out_number: Pops the top value off the stack and prints it to STDOUT as a number.
-- out_char: Pops the top value off the stack and prints it to STDOUT as the equivalent ascii character.
-- branch x: Pops the top value off the stack. If that value is non-zero, it jumps to the line number indicated by x. Line numbers are zero-indexed. Of course, in real Piet you would need to implement this in the structure of your program by manipulating the DP/CC, but alas, text is not sophisticated enough to capture this.
+This image is actually a computer program. When run, it prints out the Mandelbrot Set to the terminal. For niceness, the program itself looks like the Mandelbrot Set.
 
-Examples
+If you did not know that computer programs could come in image form, I encourage you to check out [Piet](https://www.dangermouse.net/esoteric/piet.html) which will explain everything.
 
-Here is a simple program:
-```
-push 1
-push 2
-add
-```
+# The long road
+This has long been a side-project of mine, that kept meandering into [Yak-shaving](https://joi.ito.com/weblog/2005/03/05/yak-shaving.html).
 
-This ends with the value `3` on the stack.
+Piet is not a particularly easy language to work in; it is basically an assembly language where you are fiddling with values on a stack and you can't even rearrange your commands easily.
 
-Here is an example of the `roll` command:
-```
-push 7
-push 6
-push 5
-push 4
-push 3
-push 2
-push 1
+So obviously the thing to do was to write my own text-based language with the same commands as Piet, so I could write and debug the program in an easier environment.
 
-push 3
-push 1
+And why not write in Rust while I was at it? I'd been meaning to learn Rust and this would be a good opportunity.
 
-roll
-```
+And honestly, that wasn't so hard. Interpreters are pretty easy to write and pretty soon I had my own Pietxt interpreter. [src/main.rs](./src/main.rs) and [src/lib.rs](src/lib.rs) are the results of that effort.
 
-This yields a stack that, from top to bottom looks like: `7, 6, 5, 4, 1, 3, 2`
+So now it was time to write my mandelbrot program.
+
+But first, I should make sure I had the basic algorithm right by implementing it in a higher level language. Nothing too high; I needed to use strictly integer math instead of a Complex class that handled that for me, but still fairly high level. So I wrote [prototype.rb](./mandelbrot/prototype.rb) in Ruby, using only simple constructs like loops and integer math. This became my reference implementation, and was much easier to tweak settings on than Pietxt.
+
+Ok, now I was finally ready to write some Pietxt!
+
+I made some progress. And then this suffered the fate of most side projects, and sat idle for a year.
+
+# LLM at the end of the tunnel
+
+And then LLMs got good, and I picked a lot of those side projects back up.
+
+I tried to get it to write Pietxt. It crashed out. So instead I used it to extend my interpreter in ways that were useful to me, which it was great at. I broke my Pietxt into components (even the two loops were a challenge in this language) and then wrote tests around them just like I would for a "real" program. When I needed a new debugging command, I just had Claude add it so I could focus on the central program instead of the tools needed to build that central program.
+
+Pretty soon I had a [working Mandelbrot program](./snippets/full_program.txt) in Pietxt.
+
+Now I needed to translate this into actual Piet. Boy, wouldn't it be nice to have a compiler turn my text into an image? It wouldn't have the final pretty shape I wanted, but getting all the necessary colors and block sizes would still be a great help.
+
+Claude was able to write about 90% of the compiler with no problem. What it could not seem to handle were branches. I decided to just fill those in myself; my program only had 3 loops anyway.
+
+But wait, what should I actually draw those with? Surely not MS Paint. https://www.bertnase.de/npiet/ provides both a Piet interpreter and a simple Piet IDE. The problem is that the IDE is written in TCL, which is suprisingly hard to find for Windows.
+
+It turns out it's easier to just tell Claude to translate the program into Python, which [it did](./npietedit/npietedit.py) with little fuss. And from there, I was able to keep adding quality of life features as I drew my program, without taking my focus off the Piet itself.
+
+What was surprising to me was how useful this extended pipeline ended up being. At one point, I ran into integer overflows in my program using npiet. Going back to my original ruby program let me tweak parameters until I found some that stayed within int16 and still looked decent, then I could update my piettxt and compile it into a new Piet rough draft. This AI-built pipeline was very useful!
+
+It didn't take much additional work on my part to make this ugly version of the program.
+
+![Ugly](./ugly.png)
+
+It works, but it's not art. But from there, transcribing the straight line program into fractal form was a simple task in my new IDE.
+
+# What the LLM can't do (yet?)
+
+I found Opus 4.6 and below useless when it came to understanding or writing Piet and Pietxt. However, on a lark I did throw Opus 4.7 at a bug in one of my Piet programs (an infinite loop) and though it consumed multiple sessions' worth of my usage, it was successful in identifying the problem (I was re-entering my loop at the wrong instruction). So we may not be far off from when they are able to program even in esoteric languages like these.
+
+# Artifacts
+
+This repo will continue to stand as a series of artifacts dropped along the way to finally completing a pretty Piet program. Maybe they'll be useful to you, maybe not; I won't claim vibe coding is robust. But it can definitely work to clear obstacles and let you focus on the main thing.
