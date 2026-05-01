@@ -47,7 +47,7 @@ reset_color
 
 # assumes you have already pushed x/a then y/b; ie: y/b should be on top of the stack
 
-push 5 loop_counter    # loop counter
+push 4 loop_counter    # loop counter
 
 # Initial accumulator values
 push 1 b_acc
