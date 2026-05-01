@@ -214,10 +214,14 @@ pop
 pop
 pop
 
+# print the appropriate char
+
+
 push 20
 push 10
 * cutoff
 greater comp
+not
 push 10
 *
 push 32
