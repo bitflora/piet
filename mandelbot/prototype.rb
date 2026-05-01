@@ -10,7 +10,7 @@ FACTOR = 50
 def mandelbrot(ar, bi)
     zr = 0
     zi = 0
-    4.times do
+    5.times do
         # z = z*z + a  (fixed-point: divide by FACTOR after multiply)
         if (zr*zr) >= 2147483647
             puts "Overflow: #{zr} * #{zr} = #{zr*zr}, #{ar} + #{bi}i"
@@ -26,13 +26,15 @@ end
 70.step(to: -70, by: -5) do |y|
     (-100).step(to: 50, by: 3) do |x|
         v = mandelbrot(x, y)
-        if v < 2 * FACTOR * FACTOR
+        if v < 1000
+            print '@'
+        elsif v < 2 * FACTOR * FACTOR
             print '#'
         elsif v < 4 * FACTOR * FACTOR
             print '*'
         elsif v < 5 * FACTOR * FACTOR
             print '+'
-        elsif v < 6 * FACTOR * FACTOR
+        elsif v < 1000 * FACTOR * FACTOR
             print '-'
         else
             print ' '

@@ -362,7 +362,7 @@ def redraw_cmd_canvas():
 def save_cells(fname):
     try:
         with open(fname, "w") as fp:
-            fp.write("P3\n# a piet program {}\n{} {}\n255\n".format(fname, c_maxx, c_maxy))
+            fp.write("P3\n# a piet program\n{} {}\n255\n".format(c_maxx, c_maxy))
             n = 0
             for y in range(c_maxy):
                 for x in range(c_maxx):
